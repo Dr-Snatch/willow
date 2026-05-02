@@ -32,9 +32,6 @@ Format: `- [ ] Brief description of task — [who/what is working on it]`
 - [x] Patient reminder mockup — medication timing locked to clinician recommendation, wellness reminders with editable times/days, custom reminders
 - [x] UK crisis hotline defaults — Samaritans 116 123, Shout 85258, emergency services 999
 - [x] Build hygiene — `APIConfig.template.swift` renamed to `APIConfig.example` so the target no longer compiles duplicate config enums
-- [x] Web app: `<<END>>` conversation end detection, system prompt aligned with iOS, onboarding consent checkbox (UK GDPR)
-- [x] Web app: full feature build — check-in gate, streak/tree, trends, profile, therapist handoff, toolkit, accessibility (WCAG 2.1 AA)
-- [x] Web app: therapist settings portal — 16 screens covering profile, patient management, coping plans, clinical flags, engagement defaults, templates, availability, notifications, data & privacy, security, account
 
 ---
 
