@@ -22,4 +22,3 @@ Podfile.lock
 # Secrets
 Secrets.swift
 *.plist.local
-.DS_Store

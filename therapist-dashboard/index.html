@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Willow — Therapist Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #3D8C6E;
+      --brand-light:#5BA89A;
+      --brand-dim:  rgba(61,140,110,0.1);
+      --bg:         #F7F5F0;
+      --card:       #FFFFFF;
+      --border:     #E8E4DC;
+      --text:       #1C2B27;
+      --muted:      #6B7B77;
+      --red:        #D94F4F;
+      --red-dim:    rgba(217,79,79,0.1);
+      --amber:      #D97D1A;
+      --amber-dim:  rgba(217,125,26,0.1);
+      --sidebar-w:  240px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-height: 100vh;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-icon {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: var(--brand-dim);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    .logo-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .logo-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .sidebar-section {
+      padding: 16px 12px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .patient-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin: 2px 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .patient-item:hover { background: var(--bg); }
+    .patient-item.active { background: var(--brand-dim); }
+
+    .patient-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 600; color: white; flex-shrink: 0;
+    }
+
+    .patient-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .patient-detail {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .flag-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--red);
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar-bottom {
+      margin-top: auto;
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .dr-name { font-weight: 600; color: var(--text); font-size: 14px; }
+
+    /* ── Main ── */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .patient-header-name {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .patient-header-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .session-badge {
+      background: var(--brand-dim);
+      color: var(--brand);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 20px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+    /* ── Mood chart ── */
+    .mood-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      height: 80px;
+    }
+
+    .mood-bar-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .mood-bar {
+      width: 100%;
+      border-radius: 6px;
+      min-height: 6px;
+      transition: height 0.4s ease;
+    }
+
+    .mood-day {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .mood-emoji { font-size: 14px; }
+
+    /* ── Check-ins ── */
+    .checkin-item {
+      display: flex;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .checkin-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .checkin-item:first-child { padding-top: 0; }
+
+    .checkin-emoji { font-size: 22px; flex-shrink: 0; }
+
+    .checkin-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .checkin-note {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    /* ── Flag ── */
+    .flag-card {
+      background: var(--red-dim);
+      border: 1px solid rgba(217,79,79,0.2);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .flag-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(217,79,79,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+
+    .flag-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--red);
+      margin-bottom: 3px;
+    }
+
+    .flag-text {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .flag-time {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ── Themes ── */
+    .theme-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .theme-tag {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: default;
+    }
+
+    .theme-tag .count {
+      background: rgba(0,0,0,0.1);
+      border-radius: 10px;
+      padding: 1px 6px;
+      font-size: 11px;
+    }
+
+    /* ── Strategies ── */
+    .strategy-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .strategy-item:last-child { border-bottom: none; }
+
+    .strategy-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .strategy-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .strategy-body {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .edit-btn {
+      font-size: 12px;
+      color: var(--brand);
+      background: var(--brand-dim);
+      border: none;
+      padding: 4px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: opacity 0.15s;
+    }
+
+    .edit-btn:hover { opacity: 0.7; }
+
+    .add-strategy-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--brand);
+      background: none;
+      border: 1.5px dashed rgba(61,140,110,0.4);
+      border-radius: 10px;
+      width: 100%;
+      padding: 10px 14px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.15s;
+    }
+
+    .add-strategy-btn:hover { background: var(--brand-dim); }
+
+    /* ── Stat cards ── */
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .stat-value.good  { color: var(--brand); }
+    .stat-value.warn  { color: var(--amber); }
+    .stat-value.bad   { color: var(--red); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 24px;
+      width: 420px;
+      max-width: 95vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .modal textarea {
+      width: 100%;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .modal textarea:focus { border-color: var(--brand); }
+
+    .modal-input {
+      width: 100%;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+      margin-bottom: 10px;
+      transition: border-color 0.15s;
+    }
+
+    .modal-input:focus { border-color: var(--brand); }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      justify-content: flex-end;
+    }
+
+    .btn-cancel {
+      padding: 9px 18px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .btn-save {
+      padding: 9px 18px;
+      border-radius: 10px;
+      border: none;
+      background: var(--brand);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      color: white;
+    }
+
+    .btn-save:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌿</div>
+    <div>
+      <div class="logo-name">Willow</div>
+      <div class="logo-sub">Therapist Portal</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">Patients</div>
+
+  <div class="patient-item active" onclick="selectPatient(0)">
+    <div class="patient-avatar" style="background:#3D8C6E">AJ</div>
+    <div>
+      <div class="patient-name">Alex Johnson</div>
+      <div class="patient-detail">Next: Thu May 7</div>
+    </div>
+    <div class="flag-dot"></div>
+  </div>
+
+  <div class="patient-item" onclick="selectPatient(1)">
+    <div class="patient-avatar" style="background:#5B8AC6">MP</div>
+    <div>
+      <div class="patient-name">Maya Patel</div>
+      <div class="patient-detail">Next: Fri May 8</div>
+    </div>
+  </div>
+
+  <div class="patient-item" onclick="selectPatient(2)">
+    <div class="patient-avatar" style="background:#9B6BB5">JL</div>
+    <div>
+      <div class="patient-name">James Liu</div>
+      <div class="patient-detail">Next: Mon May 11</div>
+    </div>
+  </div>
+
+  <div class="patient-item" onclick="selectPatient(3)">
+    <div class="patient-avatar" style="background:#C67E3A">SR</div>
+    <div>
+      <div class="patient-name">Sofia Reyes</div>
+      <div class="patient-detail">Next: Tue May 12</div>
+    </div>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="dr-name">Dr. Elena Rivera</div>
+    <div>CBT · Anxiety & Mood</div>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div class="main">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="patient-header-name">Alex Johnson</div>
+      <div class="patient-header-sub">26 · Generalized anxiety, social anxiety · Active since Jan 2026</div>
+    </div>
+    <div class="session-badge">Next session: Thu May 7 at 2:00 PM</div>
+  </div>
+
+  <!-- Flagged moment -->
+  <div class="flag-card">
+    <div class="flag-icon">🚨</div>
+    <div>
+      <div class="flag-title">Distress conversation flagged</div>
+      <div class="flag-text">"I've been feeling really overwhelmed and sometimes wonder if things would be easier if I wasn't here." — AI redirected to crisis resources and notified you.</div>
+      <div class="flag-time">Monday Apr 28 · 11:47 PM</div>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="grid-3" style="margin-bottom:16px">
+    <div class="stat-card">
+      <div class="stat-label">Check-ins this week</div>
+      <div class="stat-value good">7 / 7</div>
+      <div class="stat-sub">Every day ↑</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Average mood</div>
+      <div class="stat-value warn">😐 Okay</div>
+      <div class="stat-sub">Down from 🙂 last week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">AI conversations</div>
+      <div class="stat-value">4</div>
+      <div class="stat-sub">3 anxiety · 1 flagged</div>
+    </div>
+  </div>
+
+  <!-- Mood chart + Check-ins -->
+  <div class="grid-2" style="margin-bottom:16px">
+
+    <div class="card">
+      <div class="card-title">Mood this week</div>
+      <div class="mood-chart" id="moodChart"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:12px;color:var(--muted)">
+        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Today</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recent check-ins</div>
+      <div id="checkins"></div>
+    </div>
+
+  </div>
+
+  <!-- Themes + Strategies -->
+  <div class="grid-2">
+
+    <div class="card">
+      <div class="card-title">Themes this week</div>
+      <div class="theme-tags" id="themes"></div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <div class="card-title" style="margin-bottom:10px">Recent message</div>
+        <div style="font-size:14px;color:var(--muted);font-style:italic;line-height:1.55">
+          "I've been really anxious about work deadlines and I can't seem to turn my brain off at night. The breathing exercises help a bit but I still wake up at 3am."
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">Tue Apr 29 · 10:23 PM</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Coping strategies</div>
+      <div id="strategies"></div>
+      <button class="add-strategy-btn" onclick="openAddModal()">＋ Add strategy</button>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ── Edit strategy modal ── -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Edit strategy</div>
+    <input class="modal-input" id="stratTitle" placeholder="Strategy name" />
+    <textarea id="stratBody" rows="3" placeholder="Describe the technique…"></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveStrategy()">Save to patient</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Mock data ──
+  const moodData = [
+    { mood: 2, emoji: '😕' },
+    { mood: 3, emoji: '😐' },
+    { mood: 2, emoji: '😕' },
+    { mood: 4, emoji: '🙂' },
+    { mood: 5, emoji: '😄' },
+    { mood: 3, emoji: '😐' },
+    { mood: 4, emoji: '🙂' },
+  ];
+
+  const moodColors = {
+    1: '#D94F4F', 2: '#E07840', 3: '#D9B83A', 4: '#4DB87F', 5: '#2E9975'
+  };
+
+  const checkIns = [
+    { emoji: '🙂', mood: 'Good', day: 'Today', note: 'Had a productive morning. Felt a bit anxious before the meeting but it went okay.' },
+    { emoji: '😐', mood: 'Okay', day: 'Yesterday', note: 'Tired. Work was stressful. Took a walk which helped a little.' },
+    { emoji: '😕', mood: 'Bad',  day: 'Mon',  note: "Couldn't stop overthinking at night. Didn't sleep well at all." },
+  ];
+
+  const themes = [
+    { label: 'Work stress', count: 4, color: '#E07840', bg: 'rgba(224,120,64,0.12)' },
+    { label: 'Sleep', count: 3, color: '#5B8AC6', bg: 'rgba(91,138,198,0.12)' },
+    { label: 'Anxiety', count: 3, color: '#D94F4F', bg: 'rgba(217,79,79,0.12)' },
+    { label: 'Social', count: 2, color: '#9B6BB5', bg: 'rgba(155,107,181,0.12)' },
+    { label: 'Progress', count: 1, color: '#3D8C6E', bg: 'rgba(61,140,110,0.12)' },
+  ];
+
+  let strategies = [
+    { id: 1, title: '5-4-3-2-1 Grounding', body: 'Name 5 things you can see, 4 you can touch, 3 you can hear, 2 you can smell, 1 you can taste. Brings you back to the present.' },
+    { id: 2, title: 'Box Breathing', body: 'Inhale 4 counts, hold 4, exhale 4, hold 4. Repeat 4 times. Use before overwhelming situations.' },
+    { id: 3, title: 'Thought Record', body: 'Write the thought, identify the feeling, then ask: what\'s the evidence for and against this being true?' },
+  ];
+
+  let editingId = null;
+
+  // ── Render mood chart ──
+  function renderMoodChart() {
+    const chart = document.getElementById('moodChart');
+    chart.innerHTML = '';
+    const maxH = 68;
+    moodData.forEach(d => {
+      const wrap = document.createElement('div');
+      wrap.className = 'mood-bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'mood-bar';
+      bar.style.height = `${(d.mood / 5) * maxH}px`;
+      bar.style.background = moodColors[d.mood];
+      bar.style.opacity = '0.8';
+      const em = document.createElement('div');
+      em.className = 'mood-emoji';
+      em.textContent = d.emoji;
+      wrap.appendChild(bar);
+      wrap.appendChild(em);
+      chart.appendChild(wrap);
+    });
+  }
+
+  // ── Render check-ins ──
+  function renderCheckIns() {
+    const el = document.getElementById('checkins');
+    el.innerHTML = checkIns.map(c => `
+      <div class="checkin-item">
+        <div class="checkin-emoji">${c.emoji}</div>
+        <div>
+          <div class="checkin-meta">${c.day} · ${c.mood}</div>
+          <div class="checkin-note">${c.note}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── Render themes ──
+  function renderThemes() {
+    const el = document.getElementById('themes');
+    el.innerHTML = themes.map(t => `
+      <div class="theme-tag" style="color:${t.color};background:${t.bg}">
+        ${t.label} <span class="count">${t.count}</span>
+      </div>
+    `).join('');
+  }
+
+  // ── Render strategies ──
+  function renderStrategies() {
+    const el = document.getElementById('strategies');
+    el.innerHTML = strategies.map(s => `
+      <div class="strategy-item">
+        <div class="strategy-header">
+          <div class="strategy-name">${s.title}</div>
+          <button class="edit-btn" onclick="openEditModal(${s.id})">Edit</button>
+        </div>
+        <div class="strategy-body">${s.body}</div>
+      </div>
+    `).join('');
+  }
+
+  // ── Modal logic ──
+  function openEditModal(id) {
+    editingId = id;
+    const s = strategies.find(x => x.id === id);
+    document.getElementById('modalTitle').textContent = 'Edit strategy';
+    document.getElementById('stratTitle').value = s.title;
+    document.getElementById('stratBody').value = s.body;
+    document.getElementById('editModal').classList.add('open');
+  }
+
+  function openAddModal() {
+    editingId = null;
+    document.getElementById('modalTitle').textContent = 'New strategy';
+    document.getElementById('stratTitle').value = '';
+    document.getElementById('stratBody').value = '';
+    document.getElementById('editModal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('editModal').classList.remove('open');
+  }
+
+  function saveStrategy() {
+    const title = document.getElementById('stratTitle').value.trim();
+    const body  = document.getElementById('stratBody').value.trim();
+    if (!title || !body) return;
+
+    if (editingId) {
+      const idx = strategies.findIndex(s => s.id === editingId);
+      strategies[idx] = { ...strategies[idx], title, body };
+    } else {
+      strategies.push({ id: Date.now(), title, body });
+    }
+    renderStrategies();
+    closeModal();
+  }
+
+  // Click outside modal to close
+  document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // Patient switcher (visual only for mockup)
+  function selectPatient(idx) {
+    document.querySelectorAll('.patient-item').forEach((el, i) => {
+      el.classList.toggle('active', i === idx);
+    });
+  }
+
+  // ── Init ──
+  renderMoodChart();
+  renderCheckIns();
+  renderThemes();
+  renderStrategies();
+</script>
+</body>
+</html>
