@@ -161,14 +161,15 @@ struct ChatView: View {
     }
 
     private var processingCard: some View {
-        VStack(spacing: 10) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: store.theme.brand))
+        VStack(spacing: 6) {
+            ProcessingTreeView()
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
             Text("Willow is looking for patterns…")
-                .willowFont(store, size: 14)
+                .willowFont(store, size: 13)
                 .foregroundColor(store.theme.muted)
+                .padding(.bottom, 12)
         }
-        .padding(24)
         .frame(maxWidth: .infinity)
         .background(store.theme.background)
     }
