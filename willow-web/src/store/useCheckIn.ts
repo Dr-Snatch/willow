@@ -8,10 +8,12 @@ interface CheckInState {
   mood: number | null;
   sleep: number | null;
   thoughts: string;
+  steps: number | null;
   history: CheckInEntry[];
   setMood: (mood: number) => void;
   setSleep: (sleep: number) => void;
   setThoughts: (thoughts: string) => void;
+  setSteps: (steps: number | null) => void;
   submitCheckIn: () => CheckInEntry | null;
   clearDraft: () => void;
   hasCheckedInToday: () => boolean;
@@ -23,11 +25,13 @@ export const useCheckInStore = create<CheckInState>()(
       mood: null,
       sleep: null,
       thoughts: '',
+      steps: null,
       history: [],
 
       setMood: (mood) => set({ mood }),
       setSleep: (sleep) => set({ sleep }),
       setThoughts: (thoughts) => set({ thoughts }),
+      setSteps: (steps) => set({ steps }),
 
       hasCheckedInToday: () => {
         const today = dateStr();
@@ -35,7 +39,7 @@ export const useCheckInStore = create<CheckInState>()(
       },
 
       submitCheckIn: () => {
-        const { mood, sleep, thoughts } = get();
+        const { mood, sleep, thoughts, steps } = get();
         if (mood === null || sleep === null) return null;
         const now = new Date();
         const entry: CheckInEntry = {
@@ -45,12 +49,14 @@ export const useCheckInStore = create<CheckInState>()(
           timestamp: now.getTime(),
           timeOfDay: getTimeOfDay(),
           dayOfWeek: now.getDay(),
+          ...(steps !== null ? { steps } : {}),
         };
         set((state) => ({
           history: [entry, ...state.history].slice(0, 90),
           mood: null,
           sleep: null,
           thoughts: '',
+          steps: null,
         }));
         useStreakStore.getState().onCheckIn();
         if (thoughts.trim()) {

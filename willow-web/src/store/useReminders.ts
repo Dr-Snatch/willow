@@ -54,6 +54,7 @@ interface RemindersState {
   removeWellnessReminder: (id: string) => void;
   setStepGoal: (goal: number) => void;
   setStepSharing: (enabled: boolean) => void;
+  setTodaySteps: (steps: number) => void;
 }
 
 export const useRemindersStore = create<RemindersState>()(
@@ -140,6 +141,7 @@ export const useRemindersStore = create<RemindersState>()(
 
       setStepGoal: (goal) => set({ stepGoal: goal }),
       setStepSharing: (enabled) => set({ stepSharingEnabled: enabled }),
+      setTodaySteps: (steps) => set({ todaySteps: steps }),
     }),
     { name: 'willow-reminders' }
   )

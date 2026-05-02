@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useProfileStore } from '../store/useProfile';
 import { useCheckInStore } from '../store/useCheckIn';
 import { useStreakStore } from '../store/useStreak';
@@ -311,9 +312,17 @@ const ProfileView = () => {
           )}
         </section>
 
-        <p className="pb-4 text-xs text-text-muted leading-relaxed">
+        <p className="text-xs text-text-muted leading-relaxed">
           All data is stored locally on your device. Nothing is shared without your action.
         </p>
+
+        <Link
+          to="/dev"
+          className="pb-4 text-center text-[10px] text-text-muted hover:text-text-secondary transition-colors duration-200"
+          aria-label="Open developer tools"
+        >
+          Dev tools
+        </Link>
 
       </div>
     </main>

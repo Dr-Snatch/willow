@@ -11,6 +11,7 @@ import TrendsView from './views/TrendsView';
 import ToolkitView from './views/ToolkitView';
 import ProfileView from './views/ProfileView';
 import RemindersView from './views/RemindersView';
+import DevView from './views/DevView';
 import Nav from './components/Nav';
 
 const RequireCheckIn = () => {
@@ -48,6 +49,7 @@ function AppShell() {
           />
           <Route path="/check-in" element={<CheckInView />} />
           <Route path="/crisis" element={<CrisisView />} />
+          <Route path="/dev" element={<DevView />} />
           <Route element={<RequireCheckIn />}>
             <Route path="/chat" element={<ChatView />} />
             <Route path="/trends" element={<TrendsView />} />
