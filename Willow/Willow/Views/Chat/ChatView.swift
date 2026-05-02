@@ -42,8 +42,9 @@ struct ChatView: View {
             }
             Spacer()
             #if DEBUG
-            Button {
-                Task { await store.runPipelineWithMockData() }
+            Menu {
+                Button("Clear-cut test") { Task { await store.runPipelineClearCut() } }
+                Button("Subtle traits test") { Task { await store.runPipelineWithMockData() } }
             } label: {
                 Text("Test")
                     .willowFont(store, size: 12, weight: .semibold)

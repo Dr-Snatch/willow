@@ -134,8 +134,46 @@ class AppStore: ObservableObject {
     }
 
     // MARK: - Pipeline test (dev only)
-    // Loads a crafted conversation with known hidden traits and fires the pipeline directly.
-    // Expected signals: perfectionism, people-pleasing, parental expectations,
+    // Two fixtures — call runPipelineClearCut() for an engineered slam-dunk,
+    // runPipelineWithMockData() for the subtle multi-trait case.
+
+    // Clear-cut fixture: performance anxiety, named explicitly, physical symptoms,
+    // historical root, avoidance behaviour, sleep impact — all pointing at one signal.
+    func runPipelineClearCut() async {
+        guard conversationPhase == .active else { return }
+
+        let fixture: [(Bool, String)] = [
+            (true,  "I have a big presentation at work next week and I'm already anxious about it. I've barely slept in three days."),
+            (false, "What's going through your mind when you think about it?"),
+            (true,  "That I'm going to freeze up in front of everyone and go completely blank. I'm convinced it's going to happen. My heart races every time I open the slides."),
+            (false, "Three days without sleep is a lot to be carrying. What does the anxiety feel like in your body?"),
+            (true,  "Heart pounding, shoulders so tense they ache, sometimes I feel slightly sick. Last night I woke up at 3am running through the whole thing in my head again."),
+            (false, "Has this happened before — anxiety about presenting specifically?"),
+            (true,  "Yes, my whole career. It started in school — I froze in front of the class once and everyone went quiet and just stared at me. I still think about that moment. It was humiliating."),
+            (false, "That memory sounds like it's still very present."),
+            (true,  "It comes back every single time I have to present. Even now, I went through the slides for two hours last night rehearsing. My partner told me to stop because I'm not sleeping."),
+            (false, "What would 'good enough' look like for this presentation?"),
+            (true,  "Just not panicking. That's genuinely all I want. I don't care if it's great. I just need to get through it without freezing. I've been like this my whole career — every meeting where I might have to speak unexpectedly, every call. I'm always braced for it."),
+            (false, "That sounds exhausting — always braced, no matter the context."),
+            (true,  "It is. I avoid putting myself forward for things because of it. There have been opportunities I've turned down because they involved presenting. I hate that I do that but I can't seem to stop."),
+        ]
+
+        messages = fixture.map { ChatMessage(isUser: $0.0, text: $0.1) }
+        conversationPhase = .processing
+
+        let snapshot = messages
+        Task {
+            let result = await InsightPipelineService.shared.run(conversation: snapshot, context: nil)
+            switch result {
+            case .consensus(let insights):
+                self.conversationPhase = .ended(insights: insights)
+            case .noConsensus, .failed:
+                self.conversationPhase = .noConsensus
+            }
+        }
+    }
+
+    // Subtle multi-trait fixture: perfectionism, people-pleasing, parental expectations,
     // sleep-linked rumination, social withdrawal, shame around vulnerability.
     func runPipelineWithMockData() async {
         guard conversationPhase == .active else { return }
