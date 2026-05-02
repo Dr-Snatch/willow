@@ -19,7 +19,8 @@ Podfile.lock
 # macOS
 .DS_Store
 
-# Secrets
+# Secrets — never commit real keys
 Secrets.swift
+APIConfig.swift
 *.plist.local
 .DS_Store

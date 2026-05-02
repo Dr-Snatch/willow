@@ -3,9 +3,7 @@ import SwiftUI
 struct ChatView: View {
     @EnvironmentObject var store: AppStore
     @State private var inputText: String = ""
-    @State private var showCrisis = false
     @FocusState private var inputFocused: Bool
-    @State private var scrollID: UUID?
 
     var body: some View {
         ZStack {
@@ -15,10 +13,10 @@ struct ChatView: View {
                 header
                 Divider().opacity(0.4)
                 messageList
-                inputBar
+                bottomBar
             }
         }
-        .sheet(isPresented: $showCrisis) {
+        .sheet(isPresented: $store.showCrisisSheet) {
             CrisisView()
         }
     }
@@ -36,13 +34,13 @@ struct ChatView: View {
                 Text("Willow")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.brandText)
-                Text("AI Companion · Dr. Rivera's practice")
+                Text("Reflective journaling companion")
                     .font(.system(size: 12))
                     .foregroundColor(.brandMuted)
             }
             Spacer()
             Button {
-                showCrisis = true
+                store.showCrisisSheet = true
             } label: {
                 Text("Crisis")
                     .font(.system(size: 13, weight: .semibold))
@@ -82,6 +80,9 @@ struct ChatView: View {
             .onChange(of: store.messages.count) { _ in
                 withAnimation { proxy.scrollTo("bottom") }
             }
+            .onChange(of: store.messages.last?.text) { _ in
+                proxy.scrollTo("bottom")
+            }
             .onChange(of: store.isAITyping) { _ in
                 withAnimation { proxy.scrollTo("bottom") }
             }
@@ -94,7 +95,7 @@ struct ChatView: View {
             Text("Hi, \(store.userName) 👋")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(.brandText)
-            Text("I'm here whenever you need to talk — about anything. What's on your mind today?")
+            Text("What's on your mind today?")
                 .font(.system(size: 15))
                 .foregroundColor(.brandMuted)
                 .multilineTextAlignment(.center)
@@ -103,7 +104,7 @@ struct ChatView: View {
             VStack(spacing: 8) {
                 ForEach(quickStartPrompts, id: \.self) { prompt in
                     Button {
-                        store.sendMessage(prompt)
+                        Task { await store.sendMessage(prompt) }
                     } label: {
                         Text(prompt)
                             .font(.system(size: 14))
@@ -125,7 +126,37 @@ struct ChatView: View {
         "I'm actually doing okay today",
     ]
 
-    // MARK: - Input bar
+    // MARK: - Bottom bar
+    @ViewBuilder
+    private var bottomBar: some View {
+        if store.conversationPhase == .ended {
+            conversationEndCard
+        } else {
+            inputBar
+        }
+    }
+
+    private var conversationEndCard: some View {
+        VStack(spacing: 8) {
+            Text("Reflection complete")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.brandText)
+            Text("Willow will look for patterns across your conversations.")
+                .font(.system(size: 13))
+                .foregroundColor(.brandMuted)
+                .multilineTextAlignment(.center)
+            Button("Start a new reflection") {
+                store.startNewConversation()
+            }
+            .font(.system(size: 14, weight: .medium))
+            .foregroundColor(.brand)
+            .padding(.top, 2)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(Color.brandBg)
+    }
+
     private var inputBar: some View {
         HStack(spacing: 10) {
             TextField("Message…", text: $inputText, axis: .vertical)
@@ -143,20 +174,24 @@ struct ChatView: View {
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 36))
-                    .foregroundColor(inputText.trimmingCharacters(in: .whitespaces).isEmpty ? .gray.opacity(0.3) : .brand)
+                    .foregroundColor(canSend ? .brand : .gray.opacity(0.3))
             }
-            .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty)
+            .disabled(!canSend)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(Color.brandBg)
     }
 
+    private var canSend: Bool {
+        !inputText.trimmingCharacters(in: .whitespaces).isEmpty && !store.isAITyping
+    }
+
     private func send() {
         let text = inputText.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
         inputText = ""
-        store.sendMessage(text)
+        Task { await store.sendMessage(text) }
     }
 }
 
@@ -178,7 +213,7 @@ struct MessageBubble: View {
             }
 
             VStack(alignment: message.isUser ? .trailing : .leading, spacing: 3) {
-                Text(message.text)
+                Text(message.text.isEmpty ? " " : message.text)
                     .font(.system(size: 15))
                     .foregroundColor(message.isUser ? .white : .brandText)
                     .padding(.horizontal, 14)

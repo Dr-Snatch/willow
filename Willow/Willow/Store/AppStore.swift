@@ -1,5 +1,4 @@
 import Foundation
-import Combine
 
 class AppStore: ObservableObject {
     @Published var userName: String = ""
@@ -8,6 +7,8 @@ class AppStore: ObservableObject {
     @Published var messages: [ChatMessage] = []
     @Published var copingStrategies: [CopingStrategy] = CopingStrategy.mockData
     @Published var isAITyping: Bool = false
+    @Published var conversationPhase: ConversationPhase = .active
+    @Published var showCrisisSheet: Bool = false
 
     func completeOnboarding(name: String) {
         userName = name.isEmpty ? "there" : name
@@ -18,32 +19,48 @@ class AppStore: ObservableObject {
         checkIns.insert(CheckIn(mood: mood, note: note), at: 0)
     }
 
-    func sendMessage(_ text: String) {
+    func sendMessage(_ text: String) async {
+        guard conversationPhase == .active else { return }
+
+        // Synchronous crisis check — fires before any network call.
+        if CrisisDetector.isCrisis(text) {
+            showCrisisSheet = true
+            return
+        }
+
         messages.append(ChatMessage(isUser: true, text: text))
         isAITyping = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            self.isAITyping = false
-            self.messages.append(ChatMessage(isUser: false, text: Self.mockResponse(for: text)))
+
+        // Snapshot history to send (excludes the placeholder we're about to add).
+        let historyToSend = messages
+
+        // Add the AI response placeholder.
+        let placeholder = ChatMessage(isUser: false, text: "")
+        messages.append(placeholder)
+        let responseIndex = messages.count - 1
+        isAITyping = false
+
+        var fullText = ""
+
+        do {
+            for try await chunk in AIConversationService.shared.stream(messages: historyToSend) {
+                fullText += chunk
+                messages[responseIndex].text = fullText
+                    .replacingOccurrences(of: "\n<<END>>", with: "")
+                    .replacingOccurrences(of: "<<END>>", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        } catch {
+            messages[responseIndex].text = "Something went wrong — please try again."
+        }
+
+        if fullText.contains("<<END>>") {
+            conversationPhase = .ended
         }
     }
 
-    private static func mockResponse(for input: String) -> String {
-        let l = input.lowercased()
-        if l.contains("anxious") || l.contains("anxiety") || l.contains("worried") || l.contains("panic") {
-            return "It sounds like anxiety is showing up for you right now — that makes sense, and it's okay.\n\nYour therapist left you a grounding exercise. Want to try the 5-4-3-2-1 technique together? It takes about two minutes."
-        }
-        if l.contains("sad") || l.contains("depress") || l.contains("down") || l.contains("empty") {
-            return "I hear you. Feeling low can be exhausting, especially when there's no obvious reason.\n\nYou don't have to explain it. What's been taking up the most space in your mind today?"
-        }
-        if l.contains("hurt") || l.contains("harm") || l.contains("crisis") || l.contains("end it") || l.contains("suicide") {
-            return "Thank you for telling me — that took courage. What you're feeling matters, and I want to make sure you're safe right now.\n\nI'm notifying Dr. Rivera. Please also reach out to the Crisis Text Line — text HOME to 741741 — or call or text 988."
-        }
-        if l.contains("good") || l.contains("better") || l.contains("happy") || l.contains("great") {
-            return "That's really good to hear — it's worth pausing and actually noticing that.\n\nWhat do you think helped today? Even small things count."
-        }
-        if l.contains("sleep") || l.contains("tired") || l.contains("exhausted") {
-            return "Sleep and mood are deeply connected — when one suffers, the other usually does too.\n\nHave you been able to wind down at all before bed lately, or does your mind stay busy?"
-        }
-        return "Thank you for sharing that with me.\n\nCan you tell me a little more about what's been going on? I'm here, and there's no rush."
+    func startNewConversation() {
+        messages = []
+        conversationPhase = .active
     }
 }

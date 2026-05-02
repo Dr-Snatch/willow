@@ -63,7 +63,7 @@ struct CheckIn: Identifiable {
 struct ChatMessage: Identifiable {
     let id: UUID
     let isUser: Bool
-    let text: String
+    var text: String
     let timestamp: Date
 
     init(id: UUID = UUID(), isUser: Bool, text: String, timestamp: Date = Date()) {
@@ -72,6 +72,10 @@ struct ChatMessage: Identifiable {
         self.text      = text
         self.timestamp = timestamp
     }
+}
+
+enum ConversationPhase: Equatable {
+    case active, ended
 }
 
 struct CopingStrategy: Identifiable {

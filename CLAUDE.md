@@ -5,6 +5,39 @@
 
 ---
 
+## 0. Working on This Codebase — Read First
+
+This project is worked on by multiple AI agents across multiple sessions. **Changes made without coordination cause real damage** — overwriting each other's work, re-litigating settled decisions, and breaking the safety path.
+
+### Before you change anything
+
+1. **Read this entire file.** Not just the section that seems relevant. Decisions in §13 explain *why* things are the way they are — changing something without reading that context is how you break things that look like they can be changed.
+2. **Read the relevant source files.** Check what's actually in the code before assuming something isn't built yet. §10 lists what's done and what isn't.
+3. **Check §13 (Decision Log).** If a decision is logged there, it was made deliberately. Do not reverse it without a clear reason, and if you do reverse it, log the new decision with your reasoning.
+
+### What you may change freely
+- Bug fixes with no architectural impact
+- UI copy and styling that doesn't touch safety-path screens (CrisisView)
+- Adding new files that don't affect existing ones
+- Tests
+
+### What requires care
+- Anything touching `CrisisDetector`, `CrisisView`, or the crisis path — this is safety-critical
+- Changes to `AIConversationService` system prompt — the hard constraints in §2 must hold
+- Changes to `AppStore.sendMessage` flow — crisis check must remain synchronous and first
+- Any new AI model, vendor, or API key — log it in §13 and update §7
+
+### What you must not do
+- Remove or weaken the synchronous crisis check
+- Change the AI's voice to be advisory, diagnostic, or conversational in a therapeutic sense
+- Add vendor keys to committed files
+- Make architectural changes without updating §10, §13, and the relevant section of this file
+
+### After you make changes
+Update this file in the same commit. Specifically: §5 if the data flow changed, §7 if the stack changed, §10 if the file structure changed, §13 with a new decision log entry if you made an architectural choice. A future AI (or human) picking this up should be able to read CLAUDE.md and know exactly where things stand.
+
+---
+
 ## 1. What Willow Is
 
 Willow is a **translation layer between a patient's raw journaling and their human therapist**. It surfaces emotional patterns; it never gives advice.
@@ -32,7 +65,8 @@ The litmus test for any feature:
 - Give advice, suggestions, or coping strategies
 - Diagnose, label, or pathologise
 - Roleplay as a therapist, friend, or confidant
-- Respond conversationally to entries (it analyses; it doesn't reply)
+
+> **Note on the conversation layer:** The iOS app has a live chat surface (Layer 1, see §5 and §13). This is not a contradiction — the conversation layer is a *reflective journaling companion* that asks open questions and listens. It does not interpret, advise, or analyse. Insight extraction happens in Layer 2, post-conversation.
 
 ### When the user seeks advice → standard redirect
 > *"This sounds important — it could be helpful to explore this with your therapist."*
@@ -83,22 +117,29 @@ When in doubt, ask: *"Would I be comfortable with a therapist acting on this if 
 ## 5. Core Data Flow
 
 ```
-Patient writes entry (text or voice)
+User types message
         ↓
-Entry encrypted client-side, uploaded
+CrisisDetector.isCrisis() — synchronous, local ──→ CrisisView if triggered
         ↓
-Crisis check (synchronous) ──→ Safety path if triggered
+Layer 1: Haiku 4.5 streaming conversation
+  ↕ (6–10 exchanges, AI ends with <<END>>)
         ↓
-Insight pipeline (sentiment, emotion, triggers) — verified per §3
+Layer 2: Full transcript → GPT (extraction pass)
+                        → Grok (verification pass)
         ↓
-Pattern engine clusters across recent entries — verified per §3
+Insights stored as candidates (confidence + provenance)
         ↓
-Insights stored as candidates
-        ↓
-Patient reviews → confirms → therapist view updates
+[NOT YET BUILT] Patient reviews → confirms → therapist view updates
 ```
 
-The crisis check is **always synchronous** — it must fire before the user closes the app. Everything else can be async.
+The crisis check is **always synchronous and local** — it runs before the network call, with no latency dependency. Everything else can be async.
+
+**Current implementation status:**
+- ✅ CrisisDetector (local keyword check)
+- ✅ Layer 1 conversation (Haiku 4.5, streaming)
+- ⬜ Layer 2 pipeline (GPT + Grok) — next step
+- ⬜ Insight storage and patient review UI
+- ⬜ Therapist view data feed
 
 ---
 
@@ -119,12 +160,15 @@ A living tree that reflects journaling consistency: vibrant when the user journa
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Patient app | Swift + SwiftUI | iOS 17+ |
+| Patient app | Swift + SwiftUI | iOS 17+ (built against iOS 26.4 SDK) |
 | Therapist web | Next.js (App Router) + React + TypeScript | Tailwind, minimal aesthetic |
 | Backend | **TBD** — Python/FastAPI vs Node | Python preferred for AI proximity (see §12) |
 | Database | PostgreSQL | Sensitive fields encrypted at rest |
-| AI layer | Multi-source by default (see §3) | Specific models are an implementation detail |
+| AI — conversation layer | Anthropic Haiku 4.5 (`claude-haiku-4-5-20251001`) | Streaming, real-time, in-app |
+| AI — insight pipeline | OpenAI GPT (extraction) + xAI Grok (verification) | Post-conversation, cross-vendor by design |
 | Voice | On-device transcription where possible | Cloud transcription = extra sub-processor |
+
+> **API keys (development):** Keys live in `ios/Willow/Config/APIConfig.swift` (gitignored). **Must move to a backend service before production** — never ship client apps with embedded vendor keys.
 
 ---
 
@@ -155,20 +199,30 @@ A living tree that reflects journaling consistency: vibrant when the user journa
 ## 10. Suggested File Structure
 
 ```
-willow/
-├── ios/                     # Patient app (Swift / SwiftUI)
-├── web/                     # Therapist app (Next.js)
-├── backend/                 # API + AI pipeline
-│   ├── api/                 # HTTP layer
-│   ├── pipeline/            # Insight extraction
-│   ├── safety/              # Crisis detection (isolated, audited)
-│   └── verification/        # Cross-checks (§3)
-├── shared/                  # Type definitions shared across surfaces
-└── docs/
-    ├── CLAUDE.md            # this file
-    ├── safety.md            # crisis path detail
-    └── privacy.md           # data handling detail
+Willow/
+├── Willow/                         # iOS patient app (Swift / SwiftUI)
+│   ├── Config/
+│   │   └── APIConfig.swift         # API keys — gitignored, dev only
+│   ├── Services/
+│   │   ├── AIConversationService.swift   # Layer 1: Haiku 4.5 streaming chat
+│   │   └── CrisisDetector.swift          # Synchronous local crisis check
+│   ├── Models/Models.swift         # Domain types: CheckIn, ChatMessage, ConversationPhase
+│   ├── Store/AppStore.swift        # State + sendMessage async pipeline
+│   └── Views/
+│       ├── Chat/ChatView.swift     # Conversation UI with end-state handling
+│       ├── Crisis/CrisisView.swift # Crisis resources sheet
+│       ├── CheckIn/                # Mood check-in flow
+│       └── ...
+├── therapist-dashboard/            # Static HTML prototype (not production)
+└── CLAUDE.md                       # this file
 ```
+
+**Not yet built:**
+- `InsightPipelineService.swift` — GPT extraction + Grok verification (Layer 2)
+- Backend API — keys currently called direct from app (dev only)
+- Persistence — all state is in-memory
+- Pattern engine — cross-conversation clustering
+- Therapist view data feed
 
 ---
 
@@ -218,4 +272,13 @@ Worth user-testing with people in active therapy before committing.
 
 ## 13. Decision Log
 
-(Empty — populate as architectural decisions are made. Each entry: date, decision, alternatives considered, reasoning.)
+**2026-05-02 — Two-layer AI architecture**
+Layer 1 (conversation): Haiku 4.5 handles real-time streaming chat. Role is reflective journaling companion — asks open questions, goes deep, never advises. Ends conversation itself after 6–10 exchanges with `<<END>>` signal in response. Layer 2 (insight pipeline): GPT (OpenAI) extracts structured insights from the full transcript; Grok (xAI) independently verifies them. Two different vendors by design — same vendor twice is not genuine independence per §3. Pipeline runs post-conversation, not during.
+Alternatives considered: single Claude model for everything (rejected — violates Verification Principle), Claude for pipeline (rejected — cross-vendor independence stronger).
+
+**2026-05-02 — Crisis detection is synchronous and local**
+`CrisisDetector.isCrisis()` runs as a keyword check on the device before any API call. If triggered, `CrisisView` is shown immediately. The AI never sees a message that would have triggered crisis — the local check intercepts it first. This means no latency on the safety path and no dependency on network availability.
+Alternatives considered: letting the AI detect crisis in its response (rejected — too slow, too unreliable for a safety-critical path).
+
+**2026-05-02 — API keys in client app (dev only)**
+`APIConfig.swift` holds keys directly for local development. This file should be gitignored before the repo is shared or made public. All three keys (Anthropic, OpenAI, xAI) must move to a backend proxy before any real users touch the app.
