@@ -6,6 +6,11 @@ interface Props {
 const WillowTree = ({ health, size = 160 }: Props) => {
   const h = Math.max(0, Math.min(100, health));
   const thriving = h >= 80;
+  const healthLabel =
+    h < 20 ? 'Withered' :
+    h < 40 ? 'Struggling' :
+    h < 60 ? 'Growing' :
+    h < 80 ? 'Healthy' : 'Thriving';
 
   // Colour ramp: brown → olive → mid-green → rich green → deep green
   const frondColor =
@@ -24,6 +29,8 @@ const WillowTree = ({ health, size = 160 }: Props) => {
   const showTop    = h >= 25;
   const showExtra  = h >= 70;
 
+  const label = `Willow tree — ${healthLabel}${h < 30 ? ', needs care' : h >= 80 ? ', thriving' : ''}`;
+
   return (
     <svg
       viewBox="0 0 120 170"
@@ -32,6 +39,8 @@ const WillowTree = ({ health, size = 160 }: Props) => {
       strokeLinejoin="round"
       style={{ width: size, height: (size * 170) / 120 }}
       className={thriving ? 'tree-sway' : undefined}
+      role="img"
+      aria-label={label}
     >
       {/* Ground line */}
       <path

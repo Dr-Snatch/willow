@@ -39,7 +39,6 @@ const ProfileView = () => {
   const [copied, setCopied] = useState(false);
   const [generateError, setGenerateError] = useState('');
 
-  // Stats from check-in history (last 28 days)
   const now = Date.now();
   const recent = history.filter((e) => now - e.timestamp < 28 * 86400000);
   const avgMood  = avg(recent.map((e) => e.mood));
@@ -85,12 +84,12 @@ const ProfileView = () => {
   const hasData = history.length > 0 || sessionInsights.length > 0;
 
   return (
-    <div className="flex h-full w-full overflow-y-auto bg-background page-enter">
+    <main className="flex h-full w-full overflow-y-auto bg-background page-enter">
       <div className="mx-auto w-full max-w-lg px-6 py-10 flex flex-col gap-8">
 
         {/* Header */}
         <div>
-          <p className="mb-3 text-[9px] font-semibold uppercase tracking-widest text-text-muted">
+          <p className="mb-3 text-[9px] font-semibold uppercase tracking-widest text-text-muted" aria-hidden="true">
             Mental profile
           </p>
           <h1
@@ -114,33 +113,34 @@ const ProfileView = () => {
 
         {/* Summary stats */}
         {hasData && (
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: 'Reflections', value: String(sessionInsights.length) },
-              { label: 'Check-ins', value: String(history.length) },
-              {
-                label: 'Avg mood',
-                value: avgMood > 0 ? `${avgMood.toFixed(1)}/5` : '—',
-              },
-              { label: 'Day streak', value: String(streak) },
-            ].map(({ label, value }) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-border bg-surface px-5 py-4 flex flex-col gap-1"
-              >
-                <span className="text-xl font-semibold tracking-tight text-text">{value}</span>
-                <span className="text-[10px] font-medium uppercase tracking-widest text-text-muted">
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
+          <section aria-label="Profile summary statistics">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Reflections', value: String(sessionInsights.length) },
+                { label: 'Check-ins',   value: String(history.length) },
+                { label: 'Avg mood',    value: avgMood > 0 ? `${avgMood.toFixed(1)}/5` : '—' },
+                { label: 'Day streak',  value: String(streak) },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="rounded-2xl border border-border bg-surface px-5 py-4 flex flex-col gap-1"
+                >
+                  <span className="text-xl font-semibold tracking-tight text-text" aria-label={`${label}: ${value}`}>
+                    {value}
+                  </span>
+                  <span className="text-[10px] font-medium uppercase tracking-widest text-text-muted" aria-hidden="true">
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Patterns */}
         {sortedPatterns.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <p className="text-[9px] font-semibold uppercase tracking-widest text-text-muted">
+          <section aria-label="Observed emotional patterns">
+            <p className="mb-3 text-[9px] font-semibold uppercase tracking-widest text-text-muted" aria-hidden="true">
               Observed patterns
             </p>
             <div className="rounded-2xl border border-border bg-surface p-5 flex flex-col gap-3">
@@ -154,7 +154,13 @@ const ProfileView = () => {
                       {count} session{count !== 1 ? 's' : ''}
                     </span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-surface-2 overflow-hidden">
+                  <div
+                    className="h-1.5 w-full rounded-full bg-surface-2 overflow-hidden"
+                    role="meter"
+                    aria-valuenow={count}
+                    aria-valuemax={maxPatternCount}
+                    aria-label={`${PATTERN_LABELS[pattern] ?? pattern}: ${count} session${count !== 1 ? 's' : ''}`}
+                  >
                     <div
                       className="h-full rounded-full bg-brand transition-all duration-500"
                       style={{ width: `${(count / maxPatternCount) * 100}%`, opacity: 0.7 }}
@@ -163,31 +169,36 @@ const ProfileView = () => {
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Session insights timeline */}
         {sessionInsights.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <p className="text-[9px] font-semibold uppercase tracking-widest text-text-muted">
+          <section aria-label="Recent session notes">
+            <p className="mb-3 text-[9px] font-semibold uppercase tracking-widest text-text-muted" aria-hidden="true">
               Session notes
             </p>
             <div className="flex flex-col gap-2">
               {sessionInsights.slice(0, 6).map((s) => (
-                <div
+                <article
                   key={s.id}
+                  aria-label={`Session from ${formatRelativeDate(s.timestamp)}`}
                   className="rounded-2xl border border-border bg-surface px-5 py-4"
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+                    <time
+                      dateTime={new Date(s.timestamp).toISOString()}
+                      className="text-[10px] font-semibold uppercase tracking-widest text-text-muted"
+                    >
                       {formatRelativeDate(s.timestamp)}
-                    </span>
+                    </time>
                     {s.patterns.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 justify-end">
+                      <div className="flex flex-wrap gap-1.5 justify-end" aria-label={`Patterns: ${s.patterns.map((p) => PATTERN_LABELS[p] ?? p).join(', ')}`}>
                         {s.patterns.slice(0, 3).map((p) => (
                           <span
                             key={p}
                             className="rounded-full border border-brand/20 bg-brand-muted px-2 py-0.5 text-[9px] font-medium text-brand"
+                            aria-hidden="true"
                           >
                             {PATTERN_LABELS[p] ?? p}
                           </span>
@@ -200,41 +211,47 @@ const ProfileView = () => {
                   ) : (
                     <p className="text-sm text-text-muted italic">Summary unavailable for this session.</p>
                   )}
-                </div>
+                </article>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Recent notes */}
         {recentNotes.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <p className="text-[9px] font-semibold uppercase tracking-widest text-text-muted">
+          <section aria-label="Recent journal notes">
+            <p className="mb-3 text-[9px] font-semibold uppercase tracking-widest text-text-muted" aria-hidden="true">
               Journal notes
             </p>
             <div className="flex flex-col gap-2">
               {recentNotes.slice(0, 4).map((note, i) => (
-                <div key={i} className="rounded-2xl border border-border bg-surface px-5 py-4">
+                <article key={i} className="rounded-2xl border border-border bg-surface px-5 py-4">
                   <p className="text-sm text-text-secondary leading-relaxed">"{note.text}"</p>
                   <p className="mt-2 text-[10px] text-text-muted">
-                    {formatRelativeDate(note.timestamp)} · Mood {note.mood}/5
+                    <time dateTime={new Date(note.timestamp).toISOString()}>
+                      {formatRelativeDate(note.timestamp)}
+                    </time>
+                    {' '}· Mood {note.mood}/5
                   </p>
-                </div>
+                </article>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Therapist handoff */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-baseline justify-between">
-            <p className="text-[9px] font-semibold uppercase tracking-widest text-text-muted">
+        <section aria-label="Therapist handoff document">
+          <div className="flex items-baseline justify-between mb-3">
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-text-muted" aria-hidden="true">
               Therapist handoff
             </p>
             {handoffUpdatedAt && (
-              <span className="text-[10px] text-text-muted">
+              <time
+                dateTime={new Date(handoffUpdatedAt).toISOString()}
+                className="text-[10px] text-text-muted"
+              >
                 Updated {formatRelativeDate(handoffUpdatedAt)}
-              </span>
+              </time>
             )}
           </div>
 
@@ -247,46 +264,39 @@ const ProfileView = () => {
             <button
               onClick={handleGenerate}
               disabled={generating || !hasData}
+              aria-disabled={generating || !hasData}
+              aria-busy={generating}
               className="btn-dark flex items-center justify-center gap-2 w-full rounded-xl border border-text/20 bg-text py-3 text-sm font-semibold text-background transition-all duration-[500ms] ease-expo hover:bg-text/90 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              {generating ? (
-                <>
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
-                  Generating…
-                </>
-              ) : handoff ? (
-                <>
-                  <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.5} />
-                  Regenerate handoff
-                </>
-              ) : (
-                'Generate handoff'
-              )}
+              <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" style={{ animation: generating ? 'spin 1s linear infinite' : 'none' }} />
+              {generating ? 'Generating…' : handoff ? 'Regenerate handoff' : 'Generate handoff'}
             </button>
 
             {generateError && (
-              <p className="text-xs text-red-500">{generateError}</p>
+              <p role="alert" className="text-xs text-red-600">{generateError}</p>
             )}
           </div>
 
           {handoff && (
-            <div className="rounded-2xl border border-border-strong bg-surface flex flex-col">
+            <div className="mt-3 rounded-2xl border border-border-strong bg-surface flex flex-col">
               <div className="flex items-center justify-between border-b border-border px-5 py-3">
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
                   Handoff document
                 </span>
                 <button
                   onClick={handleCopy}
+                  aria-pressed={copied}
+                  aria-label={copied ? 'Copied to clipboard' : 'Copy handoff to clipboard'}
                   className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium text-text-secondary transition-colors duration-200 hover:bg-surface-2 hover:text-text"
                 >
                   {copied ? (
                     <>
-                      <Check className="h-3 w-3 text-brand" strokeWidth={2.5} />
+                      <Check className="h-3 w-3 text-brand" strokeWidth={2.5} aria-hidden="true" />
                       Copied
                     </>
                   ) : (
                     <>
-                      <Copy className="h-3 w-3" strokeWidth={2} />
+                      <Copy className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
                       Copy
                     </>
                   )}
@@ -299,14 +309,14 @@ const ProfileView = () => {
               </div>
             </div>
           )}
-        </div>
+        </section>
 
         <p className="pb-4 text-xs text-text-muted leading-relaxed">
           All data is stored locally on your device. Nothing is shared without your action.
         </p>
 
       </div>
-    </div>
+    </main>
   );
 };
 

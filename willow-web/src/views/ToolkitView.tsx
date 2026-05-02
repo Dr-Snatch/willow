@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ChevronDown, Wind, ScanEye, Droplets, Brain, Sunset, Footprints, LucideIcon } from 'lucide-react';
 
 interface Strategy {
@@ -80,6 +80,7 @@ const STRATEGIES: Strategy[] = [
 
 const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
   const [open, setOpen] = useState(false);
+  const contentId = useId();
   const Icon = strategy.icon;
 
   return (
@@ -87,7 +88,10 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
       open ? 'border-border-strong bg-surface-2' : 'border-border bg-surface'
     }`}>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={contentId}
         className="flex w-full items-center gap-4 px-5 py-4 text-left"
       >
         <div
@@ -96,6 +100,7 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
             borderColor: `${strategy.accent}25`,
             backgroundColor: `${strategy.accent}10`,
           }}
+          aria-hidden="true"
         >
           <Icon
             className="h-4 w-4"
@@ -124,17 +129,19 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-text-muted transition-transform duration-300 ease-expo ${open ? 'rotate-180' : ''}`}
           strokeWidth={2}
+          aria-hidden="true"
         />
       </button>
 
       {open && (
-        <div className="border-t border-border/60 px-5 py-5 slide-down">
+        <div id={contentId} className="border-t border-border/60 px-5 py-5 slide-down">
           <ol className="flex flex-col gap-4">
             {strategy.steps.map((step, i) => (
               <li key={i} className="flex gap-4 items-start">
                 <span
                   className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
                   style={{ backgroundColor: `${strategy.accent}15`, color: strategy.accent }}
+                  aria-hidden="true"
                 >
                   {i + 1}
                 </span>
@@ -149,11 +156,11 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
 };
 
 const ToolkitView = () => (
-  <div className="flex h-full w-full overflow-y-auto bg-background page-enter">
+  <main className="flex h-full w-full overflow-y-auto bg-background page-enter">
     <div className="mx-auto w-full max-w-lg px-6 py-10 flex flex-col gap-8">
 
       <div>
-        <p className="mb-3 text-[9px] font-semibold uppercase tracking-widest text-text-muted">
+        <p className="mb-3 text-[9px] font-semibold uppercase tracking-widest text-text-muted" aria-hidden="true">
           Resources
         </p>
         <h1
@@ -167,8 +174,12 @@ const ToolkitView = () => (
         </p>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {STRATEGIES.map((s) => <StrategyCard key={s.id} strategy={s} />)}
+      <div className="flex flex-col gap-2" role="list" aria-label="Coping strategies">
+        {STRATEGIES.map((s) => (
+          <div key={s.id} role="listitem">
+            <StrategyCard strategy={s} />
+          </div>
+        ))}
       </div>
 
       <p className="pb-4 text-xs text-text-muted leading-relaxed">
@@ -177,7 +188,7 @@ const ToolkitView = () => (
       </p>
 
     </div>
-  </div>
+  </main>
 );
 
 export default ToolkitView;

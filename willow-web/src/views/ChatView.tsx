@@ -31,13 +31,17 @@ function formatTime(ts?: number): string {
 
 const TypingIndicator = () => (
   <div className="message-enter flex items-end gap-3">
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand shadow-brand">
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand shadow-brand" aria-hidden="true">
       <WillowLogo className="h-3.5 w-3.5 text-white" strokeWidth={2} />
     </div>
-    <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-sm border border-border bg-surface px-4 py-3.5">
-      <span className="typing-dot h-1.5 w-1.5 rounded-full bg-text-muted" />
-      <span className="typing-dot h-1.5 w-1.5 rounded-full bg-text-muted" />
-      <span className="typing-dot h-1.5 w-1.5 rounded-full bg-text-muted" />
+    <div
+      role="status"
+      aria-label="Willow is typing"
+      className="flex items-center gap-1.5 rounded-2xl rounded-bl-sm border border-border bg-surface px-4 py-3.5"
+    >
+      <span className="typing-dot h-1.5 w-1.5 rounded-full bg-text-muted" aria-hidden="true" />
+      <span className="typing-dot h-1.5 w-1.5 rounded-full bg-text-muted" aria-hidden="true" />
+      <span className="typing-dot h-1.5 w-1.5 rounded-full bg-text-muted" aria-hidden="true" />
     </div>
   </div>
 );
@@ -47,7 +51,10 @@ const ChatMessage = ({ message }: { message: Message }) => {
   return (
     <div className={`message-enter flex items-end gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       {!isUser && (
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand shadow-brand">
+        <div
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand shadow-brand"
+          aria-hidden="true"
+        >
           <WillowLogo className="h-3.5 w-3.5 text-white" strokeWidth={2} />
         </div>
       )}
@@ -70,9 +77,12 @@ const ChatMessage = ({ message }: { message: Message }) => {
           </Markdown>
         </div>
         {message.timestamp && (
-          <span className="px-1 text-[10px] tabular-nums text-text-muted">
+          <time
+            dateTime={new Date(message.timestamp).toISOString()}
+            className="px-1 text-[10px] tabular-nums text-text-muted"
+          >
             {formatTime(message.timestamp)}
-          </span>
+          </time>
         )}
       </div>
     </div>
@@ -132,12 +142,15 @@ const ChatView = () => {
   const greeting = name ? `Hi, ${name}.` : 'Hi there.';
 
   return (
-    <div className="relative flex h-full w-full flex-col bg-background page-enter">
+    <main className="relative flex h-full w-full flex-col bg-background page-enter">
 
       {/* Post-crisis banner */}
       {postCrisisMode && (
-        <div className="flex items-center justify-center gap-2.5 border-b border-amber-200 bg-amber-50 px-5 py-2.5 slide-down">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+        <div
+          role="alert"
+          className="flex items-center justify-center gap-2.5 border-b border-amber-200 bg-amber-50 px-5 py-2.5 slide-down"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
           <span className="text-xs font-medium text-amber-700">
             Support is available — Samaritans 116 123 · 988 Lifeline
           </span>
@@ -145,8 +158,8 @@ const ChatView = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border bg-surface/70 px-5 py-3.5 backdrop-blur-sm">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand shadow-brand">
+      <header className="flex items-center gap-3 border-b border-border bg-surface/70 px-5 py-3.5 backdrop-blur-sm">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand shadow-brand" aria-hidden="true">
           <WillowLogo className="h-4 w-4 text-white" strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
@@ -155,19 +168,28 @@ const ChatView = () => {
         </div>
         <button
           onClick={() => navigate('/crisis')}
+          aria-label="Access crisis support resources"
           className="shrink-0 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-600 transition-colors duration-300 hover:border-red-300 hover:bg-red-100"
         >
           Crisis support
         </button>
-      </div>
+      </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-5 py-8">
+      <div
+        role="log"
+        aria-label="Conversation with Willow"
+        aria-live="polite"
+        className="flex-1 overflow-y-auto px-5 py-8"
+      >
         {isEmpty ? (
           <div className="flex h-full flex-col items-center justify-center gap-10">
             <div className="text-center">
               <div className="mb-6 flex justify-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-brand shadow-brand breathe">
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-3xl bg-brand shadow-brand breathe"
+                  aria-hidden="true"
+                >
                   <WillowLogo className="h-8 w-8 text-white" strokeWidth={1.5} />
                 </div>
               </div>
@@ -182,7 +204,7 @@ const ChatView = () => {
               </p>
             </div>
 
-            <div className="flex w-full max-w-sm flex-col gap-2">
+            <div className="flex w-full max-w-sm flex-col gap-2" role="group" aria-label="Quick conversation starters">
               {QUICK_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
@@ -209,8 +231,12 @@ const ChatView = () => {
 
       {/* Session patterns */}
       {sessionPatterns.length > 0 && !isEnded && (
-        <div className="border-t border-border bg-surface/50 px-5 py-2.5 backdrop-blur-sm flex items-center gap-2.5 flex-wrap">
-          <span className="text-[9px] font-semibold uppercase tracking-widest text-text-muted">
+        <div
+          aria-live="polite"
+          aria-label="Patterns noticed in this conversation"
+          className="border-t border-border bg-surface/50 px-5 py-2.5 backdrop-blur-sm flex items-center gap-2.5 flex-wrap"
+        >
+          <span className="text-[9px] font-semibold uppercase tracking-widest text-text-muted" aria-hidden="true">
             Noticed
           </span>
           {sessionPatterns.map((p) => (
@@ -235,7 +261,7 @@ const ChatView = () => {
               onClick={clearMessages}
               className="btn-dark mt-1 flex items-center gap-2 rounded-xl border border-text/20 bg-text px-5 py-2.5 text-sm font-semibold text-background transition-all duration-[500ms] ease-expo hover:bg-text/90"
             >
-              <RotateCcw className="h-3.5 w-3.5" strokeWidth={2.5} />
+              <RotateCcw className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
               Start a new reflection
             </button>
           </div>
@@ -250,8 +276,12 @@ const ChatView = () => {
 
           <div className="border-t border-border bg-surface/70 px-4 py-3 backdrop-blur-sm">
             <div className="mx-auto flex max-w-2xl items-end gap-2">
-              <div className="relative flex-1 rounded-2xl border border-border bg-background transition-all duration-300 focus-within:border-border-strong focus-within:ring-1 focus-within:ring-brand/15">
+              <div className="relative flex-1 rounded-2xl border border-border bg-background transition-all duration-300 focus-within:border-border-strong focus-within:ring-2 focus-within:ring-brand/20">
+                <label htmlFor="chat-input" className="sr-only">
+                  Message Willow
+                </label>
                 <textarea
+                  id="chat-input"
                   ref={textareaRef}
                   value={input}
                   onChange={handleInput}
@@ -259,31 +289,34 @@ const ChatView = () => {
                   placeholder="Message…"
                   rows={1}
                   disabled={isTyping}
+                  aria-disabled={isTyping}
                   className="w-full resize-none rounded-2xl bg-transparent px-4 py-3 pr-11 text-sm text-text placeholder:text-text-muted focus:outline-none disabled:opacity-40"
                   style={{ minHeight: '44px', maxHeight: '160px' }}
                 />
                 {messages.length > 0 && !isTyping && (
                   <button
                     onClick={clearMessages}
-                    title="Clear conversation"
+                    aria-label="Clear conversation"
                     className="absolute right-3 top-3 text-text-muted transition-colors duration-200 hover:text-text-secondary"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
                   </button>
                 )}
               </div>
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || isTyping}
+                aria-label="Send message"
+                aria-disabled={!input.trim() || isTyping}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-brand transition-all duration-300 ease-expo hover:shadow-brand-hover hover:scale-105 disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none disabled:scale-100"
               >
-                <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+                <ArrowUp className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
               </button>
             </div>
           </div>
         </>
       )}
-    </div>
+    </main>
   );
 };
 
