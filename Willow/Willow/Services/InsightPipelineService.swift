@@ -92,19 +92,45 @@ nonisolated final class InsightPipelineService {
     private init() {}
 
     func run(conversation: [ChatMessage], context: PersonalContext? = nil) async -> PipelineResult {
-        let round1 = await runRound(conversation: conversation, context: context, round: 1, priorOutputs: nil)
+        print("[Pipeline] Starting — \(conversation.count) messages")
 
-        guard round1.count >= 3 else { return .failed(PipelineError.insufficientResponses) }
+        let round1 = await runRound(conversation: conversation, context: context, round: 1, priorOutputs: nil)
+        print("[Pipeline] Round 1 responses: \(round1.count)/4")
+        for o in round1 {
+            let top = o.insights.max(by: { $0.confidence < $1.confidence })
+            print("  [\(o.vendor)] \(o.insights.count) insights, top: \(top?.type ?? "none") '\(top?.label ?? "-")' (\(String(format: "%.2f", top?.confidence ?? 0)))")
+        }
+
+        guard round1.count >= 3 else {
+            print("[Pipeline] FAILED — insufficient responses (\(round1.count))")
+            return .failed(PipelineError.insufficientResponses)
+        }
+
+        let consensus1 = hasBasicConsensus(round1)
+        print("[Pipeline] Round 1 consensus: \(consensus1)")
 
         let allOutputs: [ModelOutput]
-        if hasBasicConsensus(round1) {
+        if consensus1 {
             allOutputs = round1
         } else {
+            print("[Pipeline] Starting Round 2")
             let round2 = await runRound(conversation: conversation, context: context, round: 2, priorOutputs: round1)
+            print("[Pipeline] Round 2 responses: \(round2.count)/4")
+            for o in round2 {
+                let top = o.insights.max(by: { $0.confidence < $1.confidence })
+                print("  [\(o.vendor)] \(o.insights.count) insights, top: \(top?.type ?? "none") '\(top?.label ?? "-")' (\(String(format: "%.2f", top?.confidence ?? 0)))")
+            }
             allOutputs = round1 + round2
         }
 
-        return await synthesize(allOutputs: allOutputs, conversation: conversation)
+        print("[Pipeline] Sending \(allOutputs.count) outputs to synthesis")
+        let result = await synthesize(allOutputs: allOutputs, conversation: conversation)
+        switch result {
+        case .consensus(let insights): print("[Pipeline] Synthesis → CONSENSUS, \(insights.count) insights")
+        case .noConsensus:             print("[Pipeline] Synthesis → NO CONSENSUS")
+        case .failed(let e):           print("[Pipeline] Synthesis → FAILED: \(e)")
+        }
+        return result
     }
 
     // MARK: - Round runner
@@ -218,14 +244,17 @@ nonisolated final class InsightPipelineService {
             "generationConfig": ["responseMimeType": "application/json"]
         ]
 
-        guard let response = await post(url: url, body: body, headers: ["Content-Type": "application/json"]),
-              let candidates = response["candidates"] as? [[String: Any]],
+        let geminiResp = await post(url: url, body: body, headers: ["Content-Type": "application/json"])
+        if let err = geminiResp?["error"] as? [String: Any] { print("[Gemini] API error: \(err)"); return nil }
+        guard let candidates = geminiResp?["candidates"] as? [[String: Any]],
               let content = candidates.first?["content"] as? [String: Any],
               let parts = content["parts"] as? [[String: Any]],
               let text = parts.first?["text"] as? String
-        else { return nil }
+        else { print("[Gemini] Failed to parse response. Keys: \(geminiResp?.keys.joined(separator: ", ") ?? "nil")"); return nil }
 
-        return ModelOutput(vendor: "gemini", lens: AnalysisLens.emotionalDepth.title, insights: parse(text), round: round)
+        let parsed = parse(text)
+        print("[Gemini] Parsed \(parsed.count) insights")
+        return ModelOutput(vendor: "gemini", lens: AnalysisLens.emotionalDepth.title, insights: parsed, round: round)
     }
 
     // MARK: - Vendor: Grok
@@ -242,8 +271,12 @@ nonisolated final class InsightPipelineService {
         ]
         let headers = ["Authorization": "Bearer \(APIConfig.grokAPIKey)", "Content-Type": "application/json"]
 
-        guard let text = extractOpenAIContent(await post(url: url, body: body, headers: headers)) else { return nil }
-        return ModelOutput(vendor: "grok", lens: AnalysisLens.triggersContext.title, insights: parse(text), round: round)
+        let grokResp = await post(url: url, body: body, headers: headers)
+        if let err = grokResp?["error"] as? [String: Any] { print("[Grok] API error: \(err)"); return nil }
+        guard let text = extractOpenAIContent(grokResp) else { print("[Grok] Failed to extract content. Keys: \(grokResp?.keys.joined(separator: ", ") ?? "nil")"); return nil }
+        let parsed = parse(text)
+        print("[Grok] Parsed \(parsed.count) insights")
+        return ModelOutput(vendor: "grok", lens: AnalysisLens.triggersContext.title, insights: parsed, round: round)
     }
 
     // MARK: - Vendor: Claude (Sonnet — behavioural patterns lens)
@@ -261,8 +294,12 @@ nonisolated final class InsightPipelineService {
         ]
         let headers = ["x-api-key": APIConfig.anthropicAPIKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json"]
 
-        guard let text = extractAnthropicContent(await post(url: url, body: body, headers: headers)) else { return nil }
-        return ModelOutput(vendor: "claude", lens: AnalysisLens.behaviouralPatterns.title, insights: parse(text), round: round)
+        let claudeResp = await post(url: url, body: body, headers: headers)
+        if let err = claudeResp?["error"] as? [String: Any] { print("[Claude] API error: \(err)"); return nil }
+        guard let text = extractAnthropicContent(claudeResp) else { print("[Claude] Failed to extract content. Keys: \(claudeResp?.keys.joined(separator: ", ") ?? "nil")"); return nil }
+        let parsed = parse(text)
+        print("[Claude] Parsed \(parsed.count) insights")
+        return ModelOutput(vendor: "claude", lens: AnalysisLens.behaviouralPatterns.title, insights: parsed, round: round)
     }
 
     // MARK: - Vendor: GPT
@@ -279,8 +316,12 @@ nonisolated final class InsightPipelineService {
         ]
         let headers = ["Authorization": "Bearer \(APIConfig.openAIAPIKey)", "Content-Type": "application/json"]
 
-        guard let text = extractOpenAIContent(await post(url: url, body: body, headers: headers)) else { return nil }
-        return ModelOutput(vendor: "gpt", lens: AnalysisLens.longitudinalSignals.title, insights: parse(text), round: round)
+        let gptResp = await post(url: url, body: body, headers: headers)
+        if let err = gptResp?["error"] as? [String: Any] { print("[GPT] API error: \(err)"); return nil }
+        guard let text = extractOpenAIContent(gptResp) else { print("[GPT] Failed to extract content. Keys: \(gptResp?.keys.joined(separator: ", ") ?? "nil")"); return nil }
+        let parsed = parse(text)
+        print("[GPT] Parsed \(parsed.count) insights")
+        return ModelOutput(vendor: "gpt", lens: AnalysisLens.longitudinalSignals.title, insights: parsed, round: round)
     }
 
     // MARK: - Synthesis (Opus 4.7, extended thinking)
@@ -346,12 +387,21 @@ nonisolated final class InsightPipelineService {
         ]
         let headers = ["x-api-key": APIConfig.anthropicAPIKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json"]
 
-        guard let response = await post(url: url, body: body, headers: headers),
+        let response = await post(url: url, body: body, headers: headers)
+        if let err = response?["error"] as? [String: Any] {
+            print("[Synthesis] API error: \(err)")
+            return .failed(PipelineError.synthesisFailure)
+        }
+        guard let response,
               let content = response["content"] as? [[String: Any]],
               let textBlock = content.first(where: { $0["type"] as? String == "text" }),
               let text = textBlock["text"] as? String
-        else { return .failed(PipelineError.synthesisFailure) }
+        else {
+            print("[Synthesis] Failed to extract text block. Response keys: \(response?.keys.joined(separator: ", ") ?? "nil")")
+            return .failed(PipelineError.synthesisFailure)
+        }
 
+        print("[Synthesis] Raw response (first 500 chars): \(String(text.prefix(500)))")
         return parseSynthesis(text, roundsRun: roundsRun)
     }
 
