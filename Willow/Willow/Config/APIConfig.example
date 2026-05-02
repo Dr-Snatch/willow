@@ -1,11 +1,27 @@
 // Copy this file to APIConfig.swift and fill in your keys.
-// APIConfig.swift is gitignored - never commit real keys.
-//
+// APIConfig.swift is gitignored — never commit real keys.
 // Production: all keys must move to a backend proxy before real users touch the app.
 
 import Foundation
 
 enum APIConfig {
-    static let anthropicAPIKey = "YOUR_ANTHROPIC_API_KEY"
-    static let conversationModel = "claude-haiku-4-5-20251001"
+
+    // MARK: - Layer 1 — conversation (Haiku 4.5, streaming)
+    static let anthropicAPIKey        = "YOUR_ANTHROPIC_API_KEY"
+    static let conversationModel      = "claude-haiku-4-5-20251001"
+
+    // MARK: - Layer 3 — pipeline vendor keys
+    static let openAIAPIKey           = "YOUR_OPENAI_API_KEY"
+    static let geminiAPIKey           = "YOUR_GEMINI_API_KEY"
+    static let grokAPIKey             = "YOUR_GROK_API_KEY"
+
+    // MARK: - Layer 3 — panel models (one per vendor, different lenses)
+    static let gptModel               = "gpt-4o"               // longitudinal signals lens
+    static let geminiModel            = "gemini-2.5-pro"        // emotional depth lens
+    static let claudePipelineModel    = "claude-sonnet-4-6"     // behavioural patterns lens
+    static let grokModel              = "grok-3"                // triggers & context lens
+
+    // MARK: - Synthesis agent (Opus 4.7, extended thinking)
+    static let synthesisModel         = "claude-opus-4-7"
+    static let synthesisThinkingBudget = 8000                   // tokens
 }
