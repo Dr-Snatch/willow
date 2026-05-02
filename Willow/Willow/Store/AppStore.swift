@@ -11,6 +11,7 @@ class AppStore: ObservableObject {
     @Published var copingStrategies: [CopingStrategy] = CopingStrategy.mockData
     @Published var isAITyping: Bool = false
     @Published var conversationPhase: ConversationPhase = .active
+    @Published var personalContext: PersonalContext = PersonalContext()
     @Published var showCrisisSheet: Bool = false
     @Published var displayMode: DisplayMode = .light
     @Published var fontOption: AppFontOption = .system
@@ -110,7 +111,20 @@ class AppStore: ObservableObject {
         }
 
         if fullText.contains("<<END>>") {
-            conversationPhase = .ended
+            conversationPhase = .processing
+            let snapshot = messages
+            let ctx = personalContext
+            Task {
+                let result = await InsightPipelineService.shared.run(conversation: snapshot, context: ctx)
+                switch result {
+                case .consensus(let insights):
+                    self.conversationPhase = .ended(insights: insights)
+                case .noConsensus:
+                    self.conversationPhase = .noConsensus
+                case .failed:
+                    self.conversationPhase = .noConsensus
+                }
+            }
         }
     }
 

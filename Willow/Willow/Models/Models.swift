@@ -75,7 +75,89 @@ struct ChatMessage: Identifiable {
 }
 
 enum ConversationPhase: Equatable {
-    case active, ended
+    case active
+    case processing                    // pipeline is running
+    case ended(insights: [Insight])    // pipeline complete
+    case noConsensus                   // models disagreed → redirect to therapist
+
+    static func == (lhs: ConversationPhase, rhs: ConversationPhase) -> Bool {
+        switch (lhs, rhs) {
+        case (.active, .active), (.processing, .processing), (.noConsensus, .noConsensus): return true
+        case (.ended, .ended): return true
+        default: return false
+        }
+    }
+}
+
+// MARK: - Insight domain types
+
+enum InsightType: String, Codable {
+    case emotion, trigger, pattern, theme
+}
+
+struct InsightProvenance: Equatable {
+    let models: [String]        // which vendors agreed
+    let roundsNeeded: Int       // 1 = first-round consensus, 2 = needed peer review
+    let synthesisUsed: Bool     // whether Opus extended thinking ran
+}
+
+struct Insight: Identifiable, Equatable {
+    let id: UUID
+    let type: InsightType
+    let label: String
+    let observation: String     // observational language only — never advice
+    let confidence: Double      // 0.0–1.0
+    let evidence: [String]      // quotes / paraphrases from conversation
+    let provenance: InsightProvenance
+
+    init(id: UUID = UUID(), type: InsightType, label: String, observation: String,
+         confidence: Double, evidence: [String], provenance: InsightProvenance) {
+        self.id          = id
+        self.type        = type
+        self.label       = label
+        self.observation = observation
+        self.confidence  = confidence
+        self.evidence    = evidence
+        self.provenance  = provenance
+    }
+}
+
+// MARK: - PersonalContext (built up across confirmed conversations)
+
+struct PersonalContext {
+    var recurringEmotions: [(label: String, count: Int, total: Int)] = []
+    var knownTriggers: [(context: String, response: String)] = []
+    var behaviouralCycles: [String] = []
+    var protectiveFactors: [String] = []
+    var conversationCount: Int = 0
+
+    var isEmpty: Bool {
+        recurringEmotions.isEmpty && knownTriggers.isEmpty &&
+        behaviouralCycles.isEmpty && protectiveFactors.isEmpty
+    }
+
+    func formatted() -> String {
+        guard !isEmpty else { return "" }
+        var lines: [String] = ["Established context from \(conversationCount) prior conversation(s):"]
+        if !recurringEmotions.isEmpty {
+            let list = recurringEmotions
+                .map { "\($0.label) (\($0.count) of \($0.total) conversations)" }
+                .joined(separator: ", ")
+            lines.append("- Recurring emotions: \(list)")
+        }
+        if !knownTriggers.isEmpty {
+            let list = knownTriggers.map { "\($0.context) → \($0.response)" }.joined(separator: "; ")
+            lines.append("- Known triggers: \(list)")
+        }
+        if !behaviouralCycles.isEmpty {
+            lines.append("- Behavioural cycles: \(behaviouralCycles.joined(separator: "; "))")
+        }
+        if !protectiveFactors.isEmpty {
+            lines.append("- Protective factors: \(protectiveFactors.joined(separator: "; "))")
+        }
+        lines.append("Treat this as context, not conclusion — this conversation may show genuine change.")
+        return lines.joined(separator: "\n")
+    }
 }
 
 enum PatientTab: String, CaseIterable, Identifiable {

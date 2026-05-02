@@ -132,22 +132,88 @@ struct ChatView: View {
 
     @ViewBuilder
     private var bottomBar: some View {
-        if store.conversationPhase == .ended {
-            conversationEndCard
-        } else {
+        switch store.conversationPhase {
+        case .active:
             inputBar
+        case .processing:
+            processingCard
+        case .ended(let insights):
+            conversationEndCard(insights)
+        case .noConsensus:
+            noConsensusCard
         }
     }
 
-    private var conversationEndCard: some View {
-        VStack(spacing: 8) {
-            Text("Reflection complete")
-                .willowFont(store, size: 14, weight: .semibold)
+    private var processingCard: some View {
+        VStack(spacing: 10) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: store.theme.brand))
+            Text("Willow is looking for patterns…")
+                .willowFont(store, size: 14)
+                .foregroundColor(store.theme.muted)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity)
+        .background(store.theme.background)
+    }
+
+    @ViewBuilder
+    private func conversationEndCard(_ insights: [Insight]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .foregroundColor(store.theme.brand)
+                Text("Pattern candidates found")
+                    .willowFont(store, size: 15, weight: .semibold)
+                    .foregroundColor(store.theme.text)
+                Spacer()
+                Text("\(insights.count)")
+                    .willowFont(store, size: 15, weight: .bold)
+                    .foregroundColor(store.theme.brand)
+            }
+
+            ForEach(insights.prefix(3)) { insight in
+                InsightRow(insight: insight)
+            }
+            if insights.count > 3 {
+                Text("+\(insights.count - 3) more")
+                    .willowFont(store, size: 12)
+                    .foregroundColor(store.theme.muted)
+                    .padding(.leading, 16)
+            }
+
+            Divider().background(store.theme.border)
+
+            HStack {
+                Button("New reflection") {
+                    store.startNewConversation()
+                }
+                .willowFont(store, size: 14)
+                .foregroundColor(store.theme.muted)
+                Spacer()
+                Button("Review & share") { }
+                    .willowFont(store, size: 14, weight: .semibold)
+                    .foregroundColor(store.theme.brand)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .background(store.theme.background)
+    }
+
+    private var noConsensusCard: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "person.2.fill")
+                .font(.system(size: 22))
+                .foregroundColor(store.theme.brand)
+            Text("Bring this to your session")
+                .willowFont(store, size: 15, weight: .semibold)
                 .foregroundColor(store.theme.text)
-            Text("Willow will look for candidate patterns after this conversation. Anything shared still needs review.")
+            Text("Willow's analysis didn't reach a confident pattern this time. The best next step is to explore this with \(store.therapistName).")
                 .willowFont(store, size: 13)
                 .foregroundColor(store.theme.muted)
                 .multilineTextAlignment(.center)
+                .padding(.horizontal, 8)
             Button("Start a new reflection") {
                 store.startNewConversation()
             }
@@ -263,6 +329,43 @@ struct TherapistPlanPreview: View {
             }
         }
         .padding(.top, 4)
+    }
+}
+
+struct InsightRow: View {
+    @EnvironmentObject private var store: AppStore
+    let insight: Insight
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Circle()
+                .fill(typeColor)
+                .frame(width: 7, height: 7)
+                .padding(.top, 5)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(insight.label)
+                    .willowFont(store, size: 13, weight: .medium)
+                    .foregroundColor(store.theme.text)
+                Text(insight.observation)
+                    .willowFont(store, size: 12)
+                    .foregroundColor(store.theme.muted)
+                    .lineLimit(2)
+            }
+            Spacer()
+            Text("\(Int(insight.confidence * 100))%")
+                .willowFont(store, size: 11)
+                .foregroundColor(store.theme.muted)
+                .padding(.top, 1)
+        }
+    }
+
+    private var typeColor: Color {
+        switch insight.type {
+        case .emotion:  return store.theme.red.opacity(0.85)
+        case .trigger:  return store.theme.amber.opacity(0.85)
+        case .pattern:  return store.theme.brand
+        case .theme:    return store.theme.purple
+        }
     }
 }
 
