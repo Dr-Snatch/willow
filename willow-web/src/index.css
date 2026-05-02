@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400;1,9..144,500&family=Space+Grotesk:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+
+  body {
+    background-color: #F7F3EE;
+    color: #1C1917;
+    font-family: 'Space Grotesk', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::-webkit-scrollbar          { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-track    { background: transparent; }
+  ::-webkit-scrollbar-thumb    { background: #E2DBD1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #C9BDB1; }
+
+  * { -webkit-tap-highlight-color: transparent; }
+}
+
+/* ── Animations ─────────────────────────────────── */
+
+@keyframes dots {
+  0%, 20%   { opacity: 0.2; transform: translateY(0); }
+  50%        { opacity: 0.7; transform: translateY(-3px); }
+  80%, 100% { opacity: 0.2; transform: translateY(0); }
+}
+.typing-dot:nth-child(1) { animation: dots 1.4s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation: dots 1.4s ease-in-out 0.18s infinite; }
+.typing-dot:nth-child(3) { animation: dots 1.4s ease-in-out 0.36s infinite; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.message-enter {
+  animation: fadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: pageIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 1;    transform: scale(1); }
+  50%       { opacity: 0.82; transform: scale(1.05); }
+}
+.breathe { animation: breathe 5s ease-in-out infinite; }
+
+@keyframes checkIn {
+  0%   { transform: scale(0.7); opacity: 0; }
+  65%  { transform: scale(1.1); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+.check-in-success { animation: checkIn 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.scale-enter { animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-down { animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes treeSway {
+  0%, 100% { transform: rotate(0deg); }
+  25%       { transform: rotate(0.8deg); }
+  75%       { transform: rotate(-0.8deg); }
+}
+.tree-sway { animation: treeSway 4s ease-in-out infinite; transform-origin: bottom center; }
+
+/* ── Button fill-from-bottom ────────────────────── */
+.btn-dark {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-dark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(101%);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: -1;
+}
+.btn-dark:hover::after {
+  transform: translateY(0);
+}
+
+/* ── Expo easing utility ────────────────────────── */
+.ease-expo {
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
