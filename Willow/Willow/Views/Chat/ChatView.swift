@@ -14,6 +14,13 @@ struct ChatView: View {
                 messageList
                 bottomBar
             }
+
+            // Full-screen willow animation during pipeline processing
+            if store.conversationPhase == .processing {
+                WillowProcessingView()
+                    .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+                    .zIndex(1)
+            }
         }
         .navigationTitle("Reflect")
         .navigationBarTitleDisplayMode(.inline)
@@ -152,26 +159,12 @@ struct ChatView: View {
         case .active:
             inputBar
         case .processing:
-            processingCard
+            EmptyView()
         case .ended(let insights):
             conversationEndCard(insights)
         case .noConsensus:
             noConsensusCard
         }
-    }
-
-    private var processingCard: some View {
-        VStack(spacing: 6) {
-            ProcessingTreeView()
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-            Text("Willow is looking for patterns…")
-                .willowFont(store, size: 13)
-                .foregroundColor(store.theme.muted)
-                .padding(.bottom, 12)
-        }
-        .frame(maxWidth: .infinity)
-        .background(store.theme.background)
     }
 
     @ViewBuilder

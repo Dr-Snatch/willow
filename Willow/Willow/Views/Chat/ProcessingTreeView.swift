@@ -1,223 +1,277 @@
 import SwiftUI
 
-// MARK: - Sentiment
+// Conversation tone detected from last few user messages
+enum TreeSentiment { case sunny, rainy }
 
-enum TreeSentiment {
-    case sunny  // hopeful / positive tone
-    case rainy  // heavy / difficult — rain that still makes things grow
-}
+// MARK: - Full-screen willow animation shown while the insight pipeline runs
 
-// MARK: - Scene
-
-struct ProcessingTreeView: View {
+struct WillowProcessingView: View {
     @EnvironmentObject private var store: AppStore
 
+    // Sentiment from last few user messages
     private var sentiment: TreeSentiment {
         let text = store.messages.filter { $0.isUser }.suffix(6)
             .map { $0.text.lowercased() }.joined(separator: " ")
-        let heavyWords = ["anxious", "anxiety", "sad", "stress", "stressed", "overwhelmed",
-                          "terrible", "scared", "worried", "panic", "tired", "lonely",
-                          "fear", "bad", "numb", "hopeless", "hurt", "crying", "cry"]
-        let hits = heavyWords.filter { text.contains($0) }.count
-        return hits >= 2 ? .rainy : .sunny
+        let heavy = ["anxious","anxiety","sad","stress","stressed","overwhelmed",
+                     "terrible","scared","worried","panic","tired","lonely",
+                     "fear","bad","numb","hopeless","hurt","crying","cry"]
+        return heavy.filter { text.contains($0) }.count >= 2 ? .rainy : .sunny
     }
+
+    @State private var trunkProgress: Double = 0   // 0→1 trunk rises
+    @State private var frondProgress: Double = 0   // 0→1 fronds extend
 
     var body: some View {
-        ZStack {
-            skyGradient
-
-            GeometryReader { geo in
-                let w = geo.size.width
-                let h = geo.size.height
-                let groundY = h * 0.73
-
+        GeometryReader { geo in
+            TimelineView(.animation) { tl in
+                let elapsed = tl.date.timeIntervalSinceReferenceDate
                 ZStack {
-                    // Ground ellipse
-                    Ellipse()
-                        .fill(groundColor)
-                        .frame(width: w * 0.52, height: 15)
-                        .position(x: w / 2, y: groundY + 5)
+                    // Sky gradient
+                    skyGradient
+                        .ignoresSafeArea()
 
-                    // Weather
-                    if sentiment == .rainy {
-                        RainOverlay(width: w, height: h)
-                    } else {
-                        AnimatedSun()
-                            .frame(width: 62, height: 62)
-                            .position(x: w * 0.80, y: h * 0.21)
+                    // Tree + rain drawn together in one Canvas
+                    Canvas { ctx, sz in
+                        if sentiment == .rainy {
+                            drawRain(&ctx, sz: sz, elapsed: elapsed)
+                        }
+                        if trunkProgress > 0 {
+                            drawWillow(&ctx, sz: sz, elapsed: elapsed)
+                        }
+                    }
+                    .ignoresSafeArea(edges: [.bottom, .horizontal])
+
+                    // Sun (sunny only) — SwiftUI for pulse animation
+                    if sentiment == .sunny {
+                        FullSunView()
+                            .frame(width: 88, height: 88)
+                            .position(
+                                x: geo.size.width * 0.78,
+                                y: geo.safeAreaInsets.top * 0.4 + geo.size.height * 0.14
+                            )
                     }
 
-                    // Trunk
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(Color(red: 0.46, green: 0.30, blue: 0.16))
-                        .frame(width: 13, height: 56)
-                        .position(x: w / 2, y: groundY - 28)
-
-                    // Canopy — grows up from the trunk top
-                    AnimatedCanopy()
-                        .position(x: w / 2, y: groundY - 80)
+                    // Caption
+                    VStack {
+                        Spacer()
+                        VStack(spacing: 5) {
+                            Text("We grow through all of it")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white.opacity(0.88))
+                            Text("Finding patterns in your reflection…")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.52))
+                        }
+                        .padding(.bottom, geo.safeAreaInsets.bottom + 22)
+                    }
                 }
             }
-
-            // Caption
-            VStack {
-                Spacer()
-                Text("We grow through all of it")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.82))
-                    .padding(.bottom, 10)
-            }
         }
-        .frame(height: 230)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .ignoresSafeArea(edges: [.bottom, .horizontal])
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.5)) { trunkProgress = 1.0 }
+            withAnimation(.easeOut(duration: 2.6).delay(0.9)) { frondProgress = 1.0 }
+        }
     }
+
+    // MARK: - Willow tree (Canvas)
+
+    private func drawWillow(_ ctx: inout GraphicsContext, sz: CGSize, elapsed: Double) {
+        let cx        = sz.width / 2
+        let groundY   = sz.height * 0.76
+        let maxTrunkH = min(sz.height * 0.43, 310.0)
+        let crownY    = groundY - CGFloat(maxTrunkH * trunkProgress)
+        let crown     = CGPoint(x: cx, y: crownY)
+
+        // Fronds hang from crown (drawn behind trunk)
+        for spec in willowFronds {
+            drawFrond(&ctx, crown: crown, spec: spec, elapsed: elapsed)
+        }
+
+        // Trunk — tapered, slightly curved
+        var trunk = Path()
+        let bw: CGFloat = 16, tw: CGFloat = 7
+        trunk.move(to: CGPoint(x: cx - bw/2, y: groundY))
+        trunk.addQuadCurve(
+            to: CGPoint(x: cx - tw/2, y: crownY),
+            control: CGPoint(x: cx - bw/2 + 4, y: (groundY + crownY) * 0.5)
+        )
+        trunk.addLine(to: CGPoint(x: cx + tw/2, y: crownY))
+        trunk.addQuadCurve(
+            to: CGPoint(x: cx + bw/2, y: groundY),
+            control: CGPoint(x: cx + bw/2 - 4, y: (groundY + crownY) * 0.5)
+        )
+        trunk.closeSubpath()
+        ctx.fill(trunk, with: .color(Color(red: 0.38, green: 0.25, blue: 0.13)))
+
+        // Ground ellipse
+        let gr = Path(ellipseIn: CGRect(
+            x: cx - sz.width * 0.28, y: groundY - 3,
+            width: sz.width * 0.56,  height: 17
+        ))
+        ctx.fill(gr, with: .color(sentiment == .rainy
+            ? Color(red: 0.22, green: 0.44, blue: 0.33)
+            : Color(red: 0.29, green: 0.58, blue: 0.34)
+        ))
+    }
+
+    private func drawFrond(_ ctx: inout GraphicsContext, crown: CGPoint,
+                            spec: WillowFrondSpec, elapsed: Double) {
+        let len = spec.length * CGFloat(frondProgress)
+        guard len > 5 else { return }
+
+        let sx = CGFloat(sin(spec.angle))
+        let sy = CGFloat(cos(spec.angle))   // cos(0) = 1 → downward in screen coords ✓
+
+        // Traveling wave: each frond has a phase offset, creating a ripple across the canopy
+        let wave = sin(elapsed * 0.68 + spec.swayPhase * .pi * 2.0)
+        // Outer fronds (large |sx|) sway more than central fronds
+        let swayX = CGFloat(wave) * 17.0 * (0.30 + 0.70 * abs(sx))
+
+        let start = CGPoint(x: crown.x + spec.radius * sx,
+                            y: crown.y + spec.radius * sy)
+
+        // Control: keep initial direction but begin to droop under gravity
+        let ctrl = CGPoint(
+            x: start.x + len * 0.48 * sx * 0.58,
+            y: start.y + len * 0.48 * (sy * 0.22 + 0.78)
+        )
+
+        // End: tip hangs mostly below start, slight lateral lean + sway
+        let end = CGPoint(
+            x: start.x + len * sx * 0.11 + swayX,
+            y: start.y + len * (sy * 0.05 + 0.95)
+        )
+
+        var path = Path()
+        path.move(to: start)
+        path.addQuadCurve(to: end, control: ctrl)
+        ctx.stroke(path, with: .color(spec.color), lineWidth: spec.width)
+    }
+
+    // MARK: - Rain (Canvas)
+
+    private func drawRain(_ ctx: inout GraphicsContext, sz: CGSize, elapsed: Double) {
+        for drop in rainLayout {
+            let rawY = (elapsed * drop.speed + drop.startOffset)
+                .truncatingRemainder(dividingBy: Double(sz.height) + 30.0) - 10.0
+            let x = drop.xFrac * sz.width
+            var p = Path()
+            p.move(to: CGPoint(x: x, y: CGFloat(rawY)))
+            p.addLine(to: CGPoint(x: x + 1.5, y: CGFloat(rawY) + drop.len))
+            ctx.stroke(p, with: .color(
+                Color(red: 0.60, green: 0.77, blue: 0.92).opacity(drop.opacity)
+            ), lineWidth: 1.3)
+        }
+    }
+
+    // MARK: - Sky
 
     private var skyGradient: some View {
         LinearGradient(
             colors: sentiment == .rainy
-                ? [Color(red: 0.36, green: 0.43, blue: 0.52), Color(red: 0.60, green: 0.71, blue: 0.69)]
-                : [Color(red: 0.97, green: 0.88, blue: 0.60), Color(red: 0.78, green: 0.94, blue: 0.80)],
+                ? [Color(red: 0.20, green: 0.27, blue: 0.37), Color(red: 0.42, green: 0.56, blue: 0.54)]
+                : [Color(red: 0.96, green: 0.85, blue: 0.54), Color(red: 0.72, green: 0.91, blue: 0.77)],
             startPoint: .top,
             endPoint: .bottom
         )
     }
-
-    private var groundColor: Color {
-        sentiment == .rainy
-            ? Color(red: 0.24, green: 0.46, blue: 0.34)
-            : Color(red: 0.30, green: 0.60, blue: 0.33)
-    }
 }
 
-// MARK: - Canopy
+// MARK: - Frond data
 
-struct AnimatedCanopy: View {
-    @State private var scale: CGFloat = 0.15
-    @State private var breathe: CGFloat = 1.0
+struct WillowFrondSpec {
+    let angle: Double       // from downward vertical: 0=down, -π/2=left, +π/2=right
+    let radius: CGFloat     // start offset from crown center
+    let length: CGFloat
+    let width: CGFloat
+    let color: Color
+    let swayPhase: Double   // 0..1, left→right, drives traveling wave
+}
+
+let willowFronds: [WillowFrondSpec] = {
+    // Five greens from the app palette, varying opacity for depth
+    let palette: [Color] = [
+        Color(red: 0.22, green: 0.54, blue: 0.41).opacity(0.83),
+        Color(red: 0.17, green: 0.46, blue: 0.35).opacity(0.76),
+        Color(red: 0.27, green: 0.60, blue: 0.46).opacity(0.86),
+        Color(red: 0.15, green: 0.42, blue: 0.33).opacity(0.72),
+        Color(red: 0.24, green: 0.56, blue: 0.43).opacity(0.80),
+    ]
+    var specs: [WillowFrondSpec] = []
+    for i in 0..<54 {
+        let t          = Double(i) / 53.0
+        let angle      = -.pi * 0.694 + t * .pi * 1.388
+        let nearCenter = 1.0 - abs(angle) / (.pi * 0.694)
+        let baseLen    = 80.0 + Double(i % 9) * 9.0
+        let length     = CGFloat(baseLen * (1.0 + nearCenter * 0.30))
+        let radius     = CGFloat(10 + (i % 7) * 5)
+        let width      = CGFloat(0.85) + CGFloat(i % 4) * CGFloat(0.30)
+        let spec = WillowFrondSpec(
+            angle: angle, radius: radius, length: length,
+            width: width, color: palette[i % palette.count], swayPhase: t
+        )
+        specs.append(spec)
+    }
+    return specs
+}()
+
+// MARK: - Rain data
+
+struct RainDrop {
+    let xFrac: CGFloat
+    let speed: Double       // screen-heights per second × height
+    let startOffset: Double // initial y position spread
+    let opacity: Double
+    let len: CGFloat
+}
+
+let rainLayout: [RainDrop] = {
+    var drops: [RainDrop] = []
+    for i in 0..<34 {
+        let xFrac:  CGFloat = CGFloat(i) / 33.0 * 0.92 + 0.04
+        let speed:  Double  = 270.0 + Double(i % 8) * 24.0
+        let offset: Double  = Double(i * 53 % 100) / 100.0 * 700.0
+        let opac:   Double  = 0.16 + Double(i % 6) * 0.052
+        let len:    CGFloat = 12.0 + CGFloat(i % 5) * 3.0
+        drops.append(RainDrop(xFrac: xFrac, speed: speed, startOffset: offset, opacity: opac, len: len))
+    }
+    return drops
+}()
+
+// MARK: - Sun view
+
+struct FullSunView: View {
+    @State private var scale: CGFloat  = 1.0
+    @State private var glow: Double   = 0.10
+    @State private var rayOp: Double  = 0.30
 
     var body: some View {
         ZStack {
-            // Back-left
+            // Outer glow
             Circle()
-                .fill(Color(red: 0.18, green: 0.50, blue: 0.24).opacity(0.88))
-                .frame(width: 68, height: 68)
-                .offset(x: -23, y: 20)
-            // Back-right
-            Circle()
-                .fill(Color(red: 0.21, green: 0.53, blue: 0.27).opacity(0.88))
-                .frame(width: 64, height: 64)
-                .offset(x: 23, y: 22)
-            // Main top
-            Circle()
-                .fill(Color(red: 0.25, green: 0.58, blue: 0.31))
-                .frame(width: 80, height: 80)
-            // Highlight
-            Circle()
-                .fill(Color(red: 0.34, green: 0.70, blue: 0.39).opacity(0.62))
-                .frame(width: 42, height: 42)
-                .offset(x: -7, y: 9)
-        }
-        .scaleEffect(scale * breathe, anchor: .bottom)
-        .onAppear {
-            withAnimation(.spring(response: 1.5, dampingFraction: 0.62).delay(0.15)) {
-                scale = 1.0
-            }
-            withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true).delay(1.8)) {
-                breathe = 1.07
-            }
-        }
-    }
-}
-
-// MARK: - Sun
-
-struct AnimatedSun: View {
-    @State private var pulse: CGFloat = 1.0
-    @State private var rayOpacity: Double = 0.45
-
-    var body: some View {
-        ZStack {
+                .fill(Color(red: 1.0, green: 0.94, blue: 0.58).opacity(glow))
+                .frame(width: 88, height: 88)
+            // Rays
             ForEach(0..<8) { i in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(Color(red: 0.99, green: 0.82, blue: 0.26).opacity(rayOpacity))
-                    .frame(width: 3.5, height: 13)
-                    .offset(y: -29)
+                    .fill(Color(red: 0.99, green: 0.84, blue: 0.26).opacity(rayOp))
+                    .frame(width: 4, height: 17)
+                    .offset(y: -36)
                     .rotationEffect(.degrees(Double(i) * 45))
             }
+            // Core
             Circle()
-                .fill(Color(red: 1.0, green: 0.92, blue: 0.52).opacity(0.22))
-                .frame(width: 46, height: 46)
-            Circle()
-                .fill(Color(red: 0.99, green: 0.84, blue: 0.20))
-                .frame(width: 31, height: 31)
+                .fill(Color(red: 0.99, green: 0.86, blue: 0.20))
+                .frame(width: 36, height: 36)
         }
-        .scaleEffect(pulse)
+        .scaleEffect(scale)
         .onAppear {
-            withAnimation(.easeInOut(duration: 2.3).repeatForever(autoreverses: true)) {
-                pulse = 1.15
-                rayOpacity = 1.0
+            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
+                scale  = 1.15
+                glow   = 0.34
+                rayOp  = 0.92
             }
         }
-    }
-}
-
-// MARK: - Rain
-
-struct DropSpec: Identifiable {
-    let id: Int
-    let xFrac: CGFloat
-    let delay: Double
-    let duration: Double
-    let opacity: Double
-    let dropHeight: CGFloat
-}
-
-let rainSpecs: [DropSpec] = (0..<22).map { i in
-    // Deterministic pseudo-random values — stable across re-renders
-    let slot = CGFloat(i) / 22.0
-    let phase = Double(i * 7 % 17)
-    return DropSpec(
-        id: i,
-        xFrac:      slot * 0.94 + 0.03,
-        delay:      (phase / 17.0) * 1.8,
-        duration:   0.65 + Double(i % 6) * 0.11,
-        opacity:    0.28 + Double(i % 5) * 0.07,
-        dropHeight: 7 + CGFloat(i % 5) * 1.4
-    )
-}
-
-struct RainOverlay: View {
-    let width: CGFloat
-    let height: CGFloat
-
-    var body: some View {
-        ZStack {
-            ForEach(rainSpecs) { spec in
-                FallingDrop(spec: spec, sceneHeight: height)
-                    .position(x: spec.xFrac * width, y: 0)
-            }
-        }
-    }
-}
-
-struct FallingDrop: View {
-    let spec: DropSpec
-    let sceneHeight: CGFloat
-    @State private var yOff: CGFloat = 0
-
-    var body: some View {
-        Capsule()
-            .fill(Color(red: 0.58, green: 0.76, blue: 0.93).opacity(spec.opacity))
-            .frame(width: 2, height: spec.dropHeight)
-            .offset(y: yOff)
-            .onAppear {
-                withAnimation(
-                    .linear(duration: spec.duration)
-                    .repeatForever(autoreverses: false)
-                    .delay(spec.delay)
-                ) {
-                    yOff = sceneHeight + 20
-                }
-            }
     }
 }
