@@ -28,6 +28,10 @@ Format: `- [ ] Brief description of task — [who/what is working on it]`
 - [x] Conversation end detection — `<<END>>` signal, `ConversationPhase` state, end-state UI
 - [x] API key safety — `APIConfig.swift` gitignored, template committed
 - [x] CLAUDE.md §0 — multi-AI coordination rules
+- [x] Native SwiftUI patient mockup — Home, History, Booking, Companion, Reminders, Settings, Appearance, Font, Privacy, Therapist Link, Wind-down
+- [x] Patient reminder mockup — medication timing locked to clinician recommendation, wellness reminders with editable times/days, custom reminders
+- [x] UK crisis hotline defaults — Samaritans 116 123, Shout 85258, emergency services 999
+- [x] Build hygiene — `APIConfig.template.swift` renamed to `APIConfig.example` so the target no longer compiles duplicate config enums
 
 ---
 
@@ -35,10 +39,10 @@ Format: `- [ ] Brief description of task — [who/what is working on it]`
 
 1. **Layer 2 insight pipeline** — `InsightPipelineService.swift`: GPT (OpenAI) extraction pass + Grok (xAI) verification pass, runs on full conversation transcript after `<<END>>`
 2. **Insight display UI** — post-conversation pattern reveal for patient: observational language, confidence shown, nothing diagnostic
-3. **UK crisis hotlines** — CrisisView currently shows US resources (988, 741741); needs Samaritans (116 123) and Shout (85258) as defaults with region detection
+3. **Region-aware crisis resources** — CrisisView now defaults to UK resources; region detection / localisation still needed before launch
 4. **Persistence** — conversations and insights are in-memory only; needs local storage (SwiftData or CoreData)
 5. **Backend proxy** — API keys must move off device before any real users; Python/FastAPI preferred (see CLAUDE.md §7)
-6. **Patient consent flow** — therapist soft-flagging on crisis requires consent obtained at onboarding; not yet built
+6. **Patient consent persistence** — sharing toggles exist in the SwiftUI mockup, but consent is still in-memory and not auditable
 7. **Pattern engine** — cross-conversation clustering of insights; depends on persistence being in place
 8. **Therapist dashboard** — wire structured insights to the web app; currently a static HTML prototype
 
@@ -49,7 +53,7 @@ Format: `- [ ] Brief description of task — [who/what is working on it]`
 - **Therapist verification** — how do we confirm someone is a licensed therapist? Manual review at first? BACP/HCPC API? Unblocks: any patient–therapist linking work.
 - **Patient–therapist pairing** — invite code is the assumed model; confirm before building onboarding for it.
 - **Willow Tree mechanic** — engagement feature; has design risk (see CLAUDE.md §12). Needs user-testing before building.
-- **UK vs US crisis resources** — app currently shows US hotlines. If primary market is UK, Samaritans + Shout should be default and 988 secondary.
+- **Production scope for patient mockup** — new SwiftUI patient screens are mock-data UX surfaces; persistence, backend APIs, HealthKit, notifications, and real booking are not wired yet.
 
 ---
 

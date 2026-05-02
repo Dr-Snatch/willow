@@ -7,56 +7,57 @@ struct ChatView: View {
 
     var body: some View {
         ZStack {
-            Color.brandBg.ignoresSafeArea()
-
+            store.theme.background.ignoresSafeArea()
             VStack(spacing: 0) {
                 header
-                Divider().opacity(0.4)
+                Divider().background(store.theme.border)
                 messageList
                 bottomBar
             }
         }
+        .navigationTitle("Reflect")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $store.showCrisisSheet) {
             CrisisView()
         }
     }
 
-    // MARK: - Header
     private var header: some View {
-        HStack {
+        HStack(spacing: 12) {
             ZStack {
-                Circle().fill(Color.brand.opacity(0.15)).frame(width: 40, height: 40)
+                Circle()
+                    .fill(store.theme.brand.opacity(0.15))
+                    .frame(width: 42, height: 42)
                 Image(systemName: "leaf.fill")
-                    .foregroundColor(.brand)
+                    .foregroundColor(store.theme.brand)
                     .font(.system(size: 18))
             }
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Willow")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.brandText)
+                    .willowFont(store, size: 16, weight: .semibold)
+                    .foregroundColor(store.theme.text)
                 Text("Reflective journaling companion")
-                    .font(.system(size: 12))
-                    .foregroundColor(.brandMuted)
+                    .willowFont(store, size: 12)
+                    .foregroundColor(store.theme.muted)
             }
             Spacer()
             Button {
                 store.showCrisisSheet = true
             } label: {
-                Text("Crisis")
-                    .font(.system(size: 13, weight: .semibold))
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.red.opacity(0.8))
-                    .cornerRadius(20)
+                    .frame(width: 36, height: 36)
+                    .background(store.theme.red.opacity(0.85))
+                    .clipShape(Circle())
             }
+            .accessibilityLabel("Open crisis resources")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color.brandBg)
+        .background(store.theme.background)
     }
 
-    // MARK: - Messages
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -68,6 +69,9 @@ struct ChatView: View {
                         MessageBubble(message: msg)
                             .id(msg.id)
                     }
+                    if !store.messages.isEmpty {
+                        TherapistPlanPreview()
+                    }
                     if store.isAITyping {
                         TypingIndicator()
                             .id("typing")
@@ -77,29 +81,29 @@ struct ChatView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
             }
-            .onChange(of: store.messages.count) { _ in
+            .onChange(of: store.messages.count) { _, _ in
                 withAnimation { proxy.scrollTo("bottom") }
             }
-            .onChange(of: store.messages.last?.text) { _ in
+            .onChange(of: store.messages.last?.text) { _, _ in
                 proxy.scrollTo("bottom")
             }
-            .onChange(of: store.isAITyping) { _ in
+            .onChange(of: store.isAITyping) { _, _ in
                 withAnimation { proxy.scrollTo("bottom") }
             }
         }
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Spacer().frame(height: 40)
-            Text("Hi, \(store.userName) 👋")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(.brandText)
-            Text("What's on your mind today?")
-                .font(.system(size: 15))
-                .foregroundColor(.brandMuted)
+        VStack(spacing: 14) {
+            Spacer().frame(height: 28)
+            Text("Hi, \(store.userName.isEmpty ? "Maya" : store.userName)")
+                .willowFont(store, size: 21, weight: .bold)
+                .foregroundColor(store.theme.text)
+            Text("Write what is here. Willow listens, asks open questions, and saves the pattern work for later review.")
+                .willowFont(store, size: 15)
+                .foregroundColor(store.theme.muted)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 20)
 
             VStack(spacing: 8) {
                 ForEach(quickStartPrompts, id: \.self) { prompt in
@@ -107,26 +111,25 @@ struct ChatView: View {
                         Task { await store.sendMessage(prompt) }
                     } label: {
                         Text(prompt)
-                            .font(.system(size: 14))
-                            .foregroundColor(.brand)
+                            .willowFont(store, size: 14, weight: .medium)
+                            .foregroundColor(store.theme.brand)
                             .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Color.brand.opacity(0.1))
+                            .padding(.vertical, 9)
+                            .background(store.theme.brand.opacity(0.1))
                             .cornerRadius(20)
                     }
                 }
             }
-            .padding(.top, 8)
+            .padding(.top, 4)
         }
     }
 
     private let quickStartPrompts = [
-        "I've been feeling really anxious lately",
+        "I've been feeling anxious lately",
         "I had a hard day",
-        "I'm actually doing okay today",
+        "I want to understand a thought loop"
     ]
 
-    // MARK: - Bottom bar
     @ViewBuilder
     private var bottomBar: some View {
         if store.conversationPhase == .ended {
@@ -139,34 +142,37 @@ struct ChatView: View {
     private var conversationEndCard: some View {
         VStack(spacing: 8) {
             Text("Reflection complete")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.brandText)
-            Text("Willow will look for patterns across your conversations.")
-                .font(.system(size: 13))
-                .foregroundColor(.brandMuted)
+                .willowFont(store, size: 14, weight: .semibold)
+                .foregroundColor(store.theme.text)
+            Text("Willow will look for candidate patterns after this conversation. Anything shared still needs review.")
+                .willowFont(store, size: 13)
+                .foregroundColor(store.theme.muted)
                 .multilineTextAlignment(.center)
             Button("Start a new reflection") {
                 store.startNewConversation()
             }
-            .font(.system(size: 14, weight: .medium))
-            .foregroundColor(.brand)
-            .padding(.top, 2)
+            .willowFont(store, size: 14, weight: .medium)
+            .foregroundColor(store.theme.brand)
         }
         .padding(20)
         .frame(maxWidth: .infinity)
-        .background(Color.brandBg)
+        .background(store.theme.background)
     }
 
     private var inputBar: some View {
         HStack(spacing: 10) {
-            TextField("Message…", text: $inputText, axis: .vertical)
-                .font(.system(size: 16))
+            TextField("Message...", text: $inputText, axis: .vertical)
+                .willowFont(store, size: 16)
                 .lineLimit(1...4)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(Color.brandCard)
+                .background(store.theme.card)
+                .foregroundColor(store.theme.text)
                 .cornerRadius(22)
-                .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(store.theme.border, lineWidth: 1)
+                )
                 .focused($inputFocused)
 
             Button {
@@ -174,13 +180,13 @@ struct ChatView: View {
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 36))
-                    .foregroundColor(canSend ? .brand : .gray.opacity(0.3))
+                    .foregroundColor(canSend ? store.theme.brand : store.theme.muted.opacity(0.35))
             }
             .disabled(!canSend)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color.brandBg)
+        .background(store.theme.background)
     }
 
     private var canSend: Bool {
@@ -195,8 +201,8 @@ struct ChatView: View {
     }
 }
 
-// MARK: - Message bubble
 struct MessageBubble: View {
+    @EnvironmentObject private var store: AppStore
     let message: ChatMessage
 
     var body: some View {
@@ -205,26 +211,31 @@ struct MessageBubble: View {
 
             if !message.isUser {
                 ZStack {
-                    Circle().fill(Color.brand.opacity(0.15)).frame(width: 28, height: 28)
+                    Circle()
+                        .fill(store.theme.brand.opacity(0.15))
+                        .frame(width: 28, height: 28)
                     Image(systemName: "leaf.fill")
                         .font(.system(size: 12))
-                        .foregroundColor(.brand)
+                        .foregroundColor(store.theme.brand)
                 }
             }
 
             VStack(alignment: message.isUser ? .trailing : .leading, spacing: 3) {
                 Text(message.text.isEmpty ? " " : message.text)
-                    .font(.system(size: 15))
-                    .foregroundColor(message.isUser ? .white : .brandText)
+                    .willowFont(store, size: 15)
+                    .foregroundColor(message.isUser ? .white : store.theme.text)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(message.isUser ? Color.brand : Color.brandCard)
+                    .background(message.isUser ? store.theme.brand : store.theme.card)
                     .cornerRadius(18)
-                    .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(message.isUser ? Color.clear : store.theme.border, lineWidth: 1)
+                    )
 
                 Text(message.timestamp, format: .dateTime.hour().minute())
-                    .font(.system(size: 11))
-                    .foregroundColor(.brandMuted)
+                    .willowFont(store, size: 11)
+                    .foregroundColor(store.theme.muted)
                     .padding(.horizontal, 4)
             }
 
@@ -233,20 +244,46 @@ struct MessageBubble: View {
     }
 }
 
-// MARK: - Typing indicator
+struct TherapistPlanPreview: View {
+    @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        WillowCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "person.text.rectangle.fill")
+                        .foregroundColor(store.theme.brand)
+                    Text("Plan available from \(store.therapistName)")
+                        .willowFont(store, size: 14, weight: .semibold)
+                        .foregroundColor(store.theme.text)
+                }
+                Text("If a trigger matches a plan your therapist wrote for you, Willow can show that plan here. Willow does not invent coping advice.")
+                    .willowFont(store, size: 13)
+                    .foregroundColor(store.theme.muted)
+            }
+        }
+        .padding(.top, 4)
+    }
+}
+
 struct TypingIndicator: View {
+    @EnvironmentObject private var store: AppStore
     @State private var phase = 0
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
             ZStack {
-                Circle().fill(Color.brand.opacity(0.15)).frame(width: 28, height: 28)
-                Image(systemName: "leaf.fill").font(.system(size: 12)).foregroundColor(.brand)
+                Circle()
+                    .fill(store.theme.brand.opacity(0.15))
+                    .frame(width: 28, height: 28)
+                Image(systemName: "leaf.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(store.theme.brand)
             }
             HStack(spacing: 4) {
                 ForEach(0..<3) { i in
                     Circle()
-                        .fill(Color.brandMuted.opacity(0.6))
+                        .fill(store.theme.muted.opacity(0.6))
                         .frame(width: 7, height: 7)
                         .offset(y: phase == i ? -4 : 0)
                         .animation(.easeInOut(duration: 0.4).repeatForever().delay(Double(i) * 0.15), value: phase)
@@ -254,15 +291,10 @@ struct TypingIndicator: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(Color.brandCard)
+            .background(store.theme.card)
             .cornerRadius(18)
-            .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
             Spacer(minLength: 50)
         }
         .onAppear { phase = 1 }
     }
-}
-
-#Preview {
-    ChatView().environmentObject(AppStore())
 }

@@ -1,6 +1,6 @@
-# CLAUDE.md — Willow
+# AGENTS.md — Willow
 
-> Project context for Claude Code. Read this before making changes.
+> Project context for Codex. Read this before making changes.
 > The **Hard Constraints**, **Verification Principle**, and **Crisis Path** are load-bearing — violating them breaks the product, not just the code.
 
 ---
@@ -34,7 +34,7 @@ This project is worked on by multiple AI agents across multiple sessions. **Chan
 - Make architectural changes without updating §10, §13, and the relevant section of this file
 
 ### After you make changes
-Update this file in the same commit. Specifically: §5 if the data flow changed, §7 if the stack changed, §10 if the file structure changed, §13 with a new decision log entry if you made an architectural choice. A future AI (or human) picking this up should be able to read CLAUDE.md and know exactly where things stand.
+Update this file in the same commit. Specifically: §5 if the data flow changed, §7 if the stack changed, §10 if the file structure changed, §13 with a new decision log entry if you made an architectural choice. A future AI (or human) picking this up should be able to read AGENTS.md and know exactly where things stand.
 
 ---
 
@@ -166,7 +166,7 @@ A living tree that reflects journaling consistency: vibrant when the user journa
 | Therapist web | Next.js (App Router) + React + TypeScript | Tailwind, minimal aesthetic |
 | Backend | **TBD** — Python/FastAPI vs Node | Python preferred for AI proximity (see §12) |
 | Database | PostgreSQL | Sensitive fields encrypted at rest |
-| AI — conversation layer | Anthropic Haiku 4.5 (`claude-haiku-4-5-20251001`) | Streaming, real-time, in-app |
+| AI — conversation layer | Anthropic Haiku 4.5 (`Codex-haiku-4-5-20251001`) | Streaming, real-time, in-app |
 | AI — insight pipeline | OpenAI GPT (extraction) + xAI Grok (verification) | Post-conversation, cross-vendor by design |
 | Voice | On-device transcription where possible | Cloud transcription = extra sub-processor |
 
@@ -225,7 +225,7 @@ Willow/
 │       ├── Shared/PatientComponents.swift # Patient mockup UI components
 │       └── ...
 ├── therapist-dashboard/            # Static HTML prototype (not production)
-└── CLAUDE.md                       # this file
+└── AGENTS.md                       # this file
 ```
 
 **Not yet built:**
@@ -235,11 +235,6 @@ Willow/
 - Real HealthKit / notification / booking integrations — patient screens are currently mock-data UI
 - Pattern engine — cross-conversation clustering
 - Therapist view data feed
-
-**Supporting documents:**
-- `STATUS.md` — what's done, in progress, and next; AI agents claim tasks here before starting
-- `docs/safety.md` — crisis path detail, keyword list, what's still missing, rules for changing safety code
-- `docs/privacy.md` — data handling, sub-processors, GDPR obligations, what must be done before launch
 
 ---
 
@@ -291,7 +286,7 @@ Worth user-testing with people in active therapy before committing.
 
 **2026-05-02 — Two-layer AI architecture**
 Layer 1 (conversation): Haiku 4.5 handles real-time streaming chat. Role is reflective journaling companion — asks open questions, goes deep, never advises. Ends conversation itself after 6–10 exchanges with `<<END>>` signal in response. Layer 2 (insight pipeline): GPT (OpenAI) extracts structured insights from the full transcript; Grok (xAI) independently verifies them. Two different vendors by design — same vendor twice is not genuine independence per §3. Pipeline runs post-conversation, not during.
-Alternatives considered: single Claude model for everything (rejected — violates Verification Principle), Claude for pipeline (rejected — cross-vendor independence stronger).
+Alternatives considered: single Codex model for everything (rejected — violates Verification Principle), Codex for pipeline (rejected — cross-vendor independence stronger).
 
 **2026-05-02 — Crisis detection is synchronous and local**
 `CrisisDetector.isCrisis()` runs as a keyword check on the device before any API call. If triggered, `CrisisView` is shown immediately. The AI never sees a message that would have triggered crisis — the local check intercepts it first. This means no latency on the safety path and no dependency on network availability.

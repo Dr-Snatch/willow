@@ -4,208 +4,196 @@ struct CheckInView: View {
     @EnvironmentObject var store: AppStore
     @State private var selectedMood: MoodLevel = .okay
     @State private var note: String = ""
+    @State private var selectedTags: Set<String> = []
     @State private var submitted = false
     @FocusState private var noteIsFocused: Bool
+
+    private let tags = ["Work", "Sleep", "Rumination", "Social", "Body", "Energy"]
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12:  return "Good morning"
+        case 5..<12: return "Good morning"
         case 12..<17: return "Good afternoon"
-        default:      return "Good evening"
+        default: return "Good evening"
         }
     }
 
     var body: some View {
         ZStack {
-            Color.brandBg.ignoresSafeArea()
-
+            store.theme.background.ignoresSafeArea()
             if submitted {
                 submittedView
             } else {
                 checkInForm
             }
         }
+        .navigationTitle("Check-in")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
-    // MARK: - Form
     private var checkInForm: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                // Header
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(greeting), \(store.userName).")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .foregroundColor(.brandText)
-                    Text(Date().formatted(date: .long, time: .omitted))
-                        .font(.system(size: 15))
-                        .foregroundColor(.brandMuted)
-                }
-                .padding(.top, 8)
+        WillowScreen(title: "\(greeting), \(store.userName.isEmpty ? "Maya" : store.userName).", subtitle: Date().formatted(date: .long, time: .omitted)) {
+            moodSelector
+            noteCard
+            tagsCard
+            recentMoodCard
+            submitButton
+        }
+    }
 
-                // Mood selector
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("How are you feeling?")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.brandText)
-
-                    HStack(spacing: 0) {
-                        ForEach(MoodLevel.allCases, id: \.rawValue) { mood in
-                            moodButton(mood)
+    private var moodSelector: some View {
+        WillowCard {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionLabel("How are you feeling?")
+                HStack(spacing: 0) {
+                    ForEach(MoodLevel.allCases, id: \.rawValue) { mood in
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                selectedMood = mood
+                            }
+                        } label: {
+                            VStack(spacing: 4) {
+                                Text(mood.emoji)
+                                    .font(.system(size: selectedMood == mood ? 34 : 26))
+                                    .scaleEffect(selectedMood == mood ? 1.1 : 1.0)
+                                Text(mood.label)
+                                    .willowFont(store, size: 10, weight: .medium)
+                                    .foregroundColor(selectedMood == mood ? mood.color : store.theme.muted)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(selectedMood == mood ? mood.color.opacity(0.13) : Color.clear)
+                            .cornerRadius(12)
                         }
-                    }
-                    .background(Color.brandCard)
-                    .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
-
-                    HStack {
-                        Spacer()
-                        Text(selectedMood.label)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(selectedMood.color)
-                        Spacer()
+                        .buttonStyle(.plain)
                     }
                 }
+            }
+        }
+    }
 
-                // Note
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("What's on your mind?")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.brandText)
+    private var noteCard: some View {
+        WillowCard {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("What's on your mind?")
+                ZStack(alignment: .topLeading) {
+                    if note.isEmpty {
+                        Text("A sentence or two is enough...")
+                            .willowFont(store, size: 16)
+                            .foregroundColor(store.theme.muted.opacity(0.75))
+                            .padding(.top, 10)
+                            .padding(.leading, 6)
+                    }
+                    TextEditor(text: $note)
+                        .willowFont(store, size: 16)
+                        .foregroundColor(store.theme.text)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 110, maxHeight: 170)
+                        .focused($noteIsFocused)
+                }
+            }
+        }
+    }
 
-                    ZStack(alignment: .topLeading) {
-                        if note.isEmpty {
-                            Text("A sentence or two is enough…")
-                                .font(.system(size: 16))
-                                .foregroundColor(.brandMuted.opacity(0.7))
-                                .padding(.top, 14)
-                                .padding(.leading, 16)
+    private var tagsCard: some View {
+        WillowCard {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionLabel("Optional context")
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 96))], spacing: 8) {
+                    ForEach(tags, id: \.self) { tag in
+                        Button {
+                            if selectedTags.contains(tag) {
+                                selectedTags.remove(tag)
+                            } else {
+                                selectedTags.insert(tag)
+                            }
+                        } label: {
+                            Text(tag)
+                                .willowFont(store, size: 13, weight: .semibold)
+                                .foregroundColor(selectedTags.contains(tag) ? .white : store.theme.brand)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 9)
+                                .background(selectedTags.contains(tag) ? store.theme.brand : store.theme.brand.opacity(0.12))
+                                .cornerRadius(18)
                         }
-                        TextEditor(text: $note)
-                            .font(.system(size: 16))
-                            .foregroundColor(.brandText)
-                            .frame(minHeight: 100, maxHeight: 160)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .focused($noteIsFocused)
+                        .buttonStyle(.plain)
                     }
-                    .background(Color.brandCard)
-                    .cornerRadius(14)
-                    .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
                 }
+            }
+        }
+    }
 
-                // Recent mood strip
-                if !store.checkIns.isEmpty {
-                    recentMoodStrip
-                }
-
-                // Submit
-                Button {
-                    store.submitCheckIn(mood: selectedMood, note: note)
-                    noteIsFocused = false
-                    withAnimation { submitted = true }
-                } label: {
-                    Text("Log Check-in")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.white)
+    private var recentMoodCard: some View {
+        WillowCard {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionLabel("This week")
+                HStack(spacing: 8) {
+                    ForEach(store.checkIns.prefix(7).reversed()) { checkIn in
+                        VStack(spacing: 4) {
+                            Text(checkIn.mood.emoji)
+                                .font(.system(size: 21))
+                            Text(checkIn.date, format: .dateTime.weekday(.abbreviated))
+                                .willowFont(store, size: 10)
+                                .foregroundColor(store.theme.muted)
+                        }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.brand)
-                        .cornerRadius(14)
-                }
-                .padding(.bottom, 24)
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-
-    private func moodButton(_ mood: MoodLevel) -> some View {
-        Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                selectedMood = mood
-            }
-        } label: {
-            VStack(spacing: 4) {
-                Text(mood.emoji)
-                    .font(.system(size: selectedMood == mood ? 34 : 26))
-                    .scaleEffect(selectedMood == mood ? 1.1 : 1.0)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(selectedMood == mood ? mood.color.opacity(0.12) : Color.clear)
-        }
-        .buttonStyle(.plain)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedMood)
-    }
-
-    private var recentMoodStrip: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("This week")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.brandMuted)
-
-            HStack(spacing: 8) {
-                ForEach(store.checkIns.prefix(7).reversed()) { checkIn in
-                    VStack(spacing: 4) {
-                        Text(checkIn.mood.emoji)
-                            .font(.system(size: 20))
-                        Text(checkIn.date, format: .dateTime.weekday(.abbreviated))
-                            .font(.system(size: 10))
-                            .foregroundColor(.brandMuted)
                     }
-                    .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
-            .background(Color.brandCard)
-            .cornerRadius(14)
-            .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
         }
     }
 
-    // MARK: - Submitted state
+    private var submitButton: some View {
+        Button {
+            let tagText = selectedTags.isEmpty ? "" : "\nTags: \(selectedTags.sorted().joined(separator: ", "))"
+            store.submitCheckIn(mood: selectedMood, note: note + tagText)
+            noteIsFocused = false
+            withAnimation { submitted = true }
+        } label: {
+            Text("Log check-in")
+                .willowFont(store, size: 17, weight: .semibold)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(store.theme.brand)
+                .cornerRadius(14)
+        }
+    }
+
     private var submittedView: some View {
         VStack(spacing: 20) {
             Spacer()
-
             ZStack {
                 Circle()
-                    .fill(Color.brand.opacity(0.12))
+                    .fill(store.theme.brand.opacity(0.12))
                     .frame(width: 100, height: 100)
                 Image(systemName: "checkmark")
                     .font(.system(size: 40, weight: .semibold))
-                    .foregroundColor(.brand)
+                    .foregroundColor(store.theme.brand)
             }
-
             Text("Logged \(selectedMood.emoji)")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundColor(.brandText)
-
-            Text("Dr. Rivera will see your check-in\nbefore your next session.")
-                .font(.system(size: 16))
-                .foregroundColor(.brandMuted)
+                .willowFont(store, size: 24, weight: .bold)
+                .foregroundColor(store.theme.text)
+            Text("\(store.therapistName) will see this only according to your sharing settings.")
+                .willowFont(store, size: 16)
+                .foregroundColor(store.theme.muted)
                 .multilineTextAlignment(.center)
-
+                .padding(.horizontal, 32)
             Spacer()
-
             Button {
                 withAnimation {
                     submitted = false
                     note = ""
+                    selectedTags = []
                     selectedMood = .okay
                 }
             } label: {
                 Text("Done")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.brand)
+                    .willowFont(store, size: 17, weight: .semibold)
+                    .foregroundColor(store.theme.brand)
             }
             .padding(.bottom, 40)
         }
-        .transition(.opacity.combined(with: .scale))
     }
-}
-
-#Preview {
-    CheckInView().environmentObject(AppStore())
 }

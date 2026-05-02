@@ -1,11 +1,11 @@
 // Copy this file to APIConfig.swift and fill in your keys.
-// APIConfig.swift is gitignored — never commit real keys.
+// APIConfig.swift is gitignored - never commit real keys.
 //
 // Production: all keys must move to a backend proxy before real users touch the app.
 
 import Foundation
 
 enum APIConfig {
-    static let anthropicAPIKey   = "YOUR_ANTHROPIC_API_KEY"
+    static let anthropicAPIKey = "YOUR_ANTHROPIC_API_KEY"
     static let conversationModel = "claude-haiku-4-5-20251001"
 }

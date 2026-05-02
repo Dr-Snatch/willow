@@ -2,13 +2,13 @@ import SwiftUI
 
 struct CrisisView: View {
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject private var store: AppStore
 
     var body: some View {
         ZStack {
             Color(red: 0.98, green: 0.96, blue: 0.96).ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Handle
                 RoundedRectangle(cornerRadius: 3)
                     .fill(Color.gray.opacity(0.3))
                     .frame(width: 36, height: 5)
@@ -16,77 +16,88 @@ struct CrisisView: View {
                     .padding(.bottom, 20)
 
                 ScrollView {
-                    VStack(spacing: 24) {
-                        // Header
-                        VStack(spacing: 8) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.red.opacity(0.12))
-                                    .frame(width: 72, height: 72)
-                                Image(systemName: "heart.fill")
-                                    .font(.system(size: 30))
-                                    .foregroundColor(.red.opacity(0.8))
-                            }
-                            Text("You're not alone")
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
-                                .foregroundColor(Color(red: 0.3, green: 0.1, blue: 0.1))
-                            Text("Real people are available right now.")
-                                .font(.system(size: 15))
-                                .foregroundColor(.secondary)
-                        }
-
-                        // Crisis lines
-                        VStack(spacing: 12) {
-                            CrisisResource(
-                                icon: "phone.fill",
-                                color: .red,
-                                title: "988 Suicide & Crisis Lifeline",
-                                detail: "Call or text 988 · Available 24/7",
-                                action: { callNumber("988") }
-                            )
-                            CrisisResource(
-                                icon: "message.fill",
-                                color: Color(red: 0.2, green: 0.5, blue: 0.9),
-                                title: "Crisis Text Line",
-                                detail: "Text HOME to 741741",
-                                action: { openTextLine() }
-                            )
-                            CrisisResource(
-                                icon: "cross.fill",
-                                color: Color(red: 0.9, green: 0.4, blue: 0.2),
-                                title: "Emergency Services",
-                                detail: "Call 911 for immediate danger",
-                                action: { callNumber("911") }
-                            )
-                        }
-
-                        // Notify therapist
-                        Button {
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Image(systemName: "bell.fill")
-                                Text("Notify Dr. Rivera")
-                                    .font(.system(size: 16, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color(red: 0.24, green: 0.55, blue: 0.43))
-                            .cornerRadius(14)
-                        }
-
-                        Text("Your therapist will be alerted and will follow up with you.")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 32)
+                    VStack(spacing: 22) {
+                        header
+                        resources
+                        therapistButton
+                        controlNote
                     }
                     .padding(.horizontal, 20)
+                    .padding(.bottom, 30)
                 }
             }
         }
+    }
+
+    private var header: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(Color(red: 0.72, green: 0.24, blue: 0.24).opacity(0.12))
+                    .frame(width: 72, height: 72)
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 30))
+                    .foregroundColor(Color(red: 0.72, green: 0.24, blue: 0.24))
+            }
+            Text("You are not alone")
+                .willowFont(store, size: 22, weight: .bold)
+                .foregroundColor(Color(red: 0.30, green: 0.10, blue: 0.10))
+            Text("Real people are available right now. Journaling stays available after this.")
+                .willowFont(store, size: 15)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    private var resources: some View {
+        VStack(spacing: 12) {
+            CrisisResource(
+                icon: "phone.fill",
+                color: Color(red: 0.72, green: 0.24, blue: 0.24),
+                title: "Samaritans",
+                detail: "Call 116 123 - free, 24/7 in the UK and ROI",
+                action: { callNumber("116123") }
+            )
+            CrisisResource(
+                icon: "message.fill",
+                color: Color(red: 0.20, green: 0.43, blue: 0.72),
+                title: "Shout",
+                detail: "Text SHOUT to 85258 - UK crisis text support",
+                action: { openSMS(number: "85258", body: "SHOUT") }
+            )
+            CrisisResource(
+                icon: "cross.fill",
+                color: Color(red: 0.85, green: 0.42, blue: 0.22),
+                title: "Emergency services",
+                detail: "Call 999 if there is immediate danger",
+                action: { callNumber("999") }
+            )
+        }
+    }
+
+    private var therapistButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            HStack {
+                Image(systemName: "bell.fill")
+                Text("Share urgent flag with \(store.therapistName)")
+                    .willowFont(store, size: 16, weight: .semibold)
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color(red: 0.24, green: 0.55, blue: 0.43))
+            .cornerRadius(14)
+        }
+    }
+
+    private var controlNote: some View {
+        Text("You stay in control. Willow does not contact emergency services automatically, and this screen does not block you from writing.")
+            .willowFont(store, size: 13)
+            .foregroundColor(.secondary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 12)
     }
 
     private func callNumber(_ number: String) {
@@ -94,8 +105,9 @@ struct CrisisView: View {
         UIApplication.shared.open(url)
     }
 
-    private func openTextLine() {
-        guard let url = URL(string: "sms:741741&body=HOME") else { return }
+    private func openSMS(number: String, body: String) {
+        guard let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "sms:\(number)&body=\(encodedBody)") else { return }
         UIApplication.shared.open(url)
     }
 }
@@ -138,8 +150,4 @@ struct CrisisResource: View {
         }
         .buttonStyle(.plain)
     }
-}
-
-#Preview {
-    CrisisView()
 }
