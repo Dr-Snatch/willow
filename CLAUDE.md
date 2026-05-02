@@ -188,7 +188,7 @@ A living tree that reflects journaling consistency: vibrant when the user journa
 | AI — Layer 2 | TBD | To be designed |
 | AI — Layer 3 Round 1 | Gemini + Grok + Claude + GPT (parallel) | 4 independent vendors, no shared context |
 | AI — Layer 3 Round 2 | Same 4 models, cross-context | Each sees the other 3's Round 1 output |
-| AI — synthesis agent | TBD (Claude Sonnet candidate) | Weighted decision across all 8 outputs |
+| AI — synthesis agent | Claude Opus 4.7 with extended thinking | Weighted decision across all 8 outputs; thinking budget 8–10k tokens |
 | Voice | On-device transcription where possible | Cloud transcription = extra sub-processor |
 
 > **API keys (development):** Keys live in `ios/Willow/Config/APIConfig.swift` (gitignored). **Must move to a backend service before production** — never ship client apps with embedded vendor keys.
@@ -315,7 +315,7 @@ Layer 1: Haiku 4.5 streaming conversation. Ends with `<<END>>`. Layer 2: TBD. La
 
 Rationale: 4/4 unanimous agreement from four independent vendors with no shared context is the strongest possible automated signal. Round 2 with cross-context mirrors a clinical panel review — experts who can revise their position after seeing peer reasoning. The fallback to a human (therapist) when the AI panel can't agree is the right safety posture for a mental-health product.
 
-Synthesis agent model: TBD — Claude Sonnet is the current candidate; a fifth independent model is the alternative to avoid any single-vendor bias in the final synthesis step.
+Synthesis agent model: **Claude Opus 4.7 with extended thinking** (`claude-opus-4-7`, thinking budget 8,000–10,000 tokens). Chosen because this is the highest-stakes decision in the pipeline — it determines whether an insight reaches a patient or is held back. Extended thinking gives Opus time to reason carefully across all 8 inputs rather than pattern-matching to a fast answer. Cost and latency (15–30s) are acceptable because this fires once per completed conversation. Anthropic is now present at Layer 1 (Haiku) and synthesis — the 4 independent Round 1/2 models provide the cross-vendor check; Opus arbitrates the result.
 
 **2026-05-02 — Crisis detection is synchronous and local**
 `CrisisDetector.isCrisis()` runs as a keyword check on the device before any API call. If triggered, `CrisisView` is shown immediately. The AI never sees a message that would have triggered crisis — the local check intercepts it first. This means no latency on the safety path and no dependency on network availability.
