@@ -16,6 +16,9 @@ class Conversation: ObservableObject {
     private let claudeService = ClaudeService()
     private let crisisDetectionService = CrisisDetectionService()
     
+    private var mood: Double = 3.0 // Default value
+    private var sleep: Double = 5.0 // Default value
+    
     private let initialMessage = Message(
         text: "I'm here to listen. What's on your mind?",
         sender: .ai,
@@ -24,6 +27,12 @@ class Conversation: ObservableObject {
     
     init() {
         messages.append(initialMessage)
+    }
+    
+    func updateContext(mood: Double, sleep: Double) {
+        self.mood = mood
+        self.sleep = sleep
+        // The system prompt for the next AI call will now have this context
     }
     
     func sendMessage(_ text: String) {
@@ -41,7 +50,7 @@ class Conversation: ObservableObject {
         
         Task {
             do {
-                let responseText = try await claudeService.getResponse(for: messages)
+                let responseText = try await claudeService.getResponse(for: messages, mood: mood, sleep: sleep)
                 let aiMessage = Message(text: responseText, sender: .ai, register: .warmListening)
                 messages.append(aiMessage)
             } catch {

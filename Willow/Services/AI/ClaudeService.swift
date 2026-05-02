@@ -86,7 +86,7 @@ class ClaudeService {
         """
     }
 
-    func getResponse(for messages: [Message]) async throws -> String {
+    func getResponse(for messages: [Message], mood: Double, sleep: Double) async throws -> String {
         var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
         request.addValue("2024-04-04", forHTTPHeaderField: "x-api-version")
@@ -95,11 +95,9 @@ class ClaudeService {
 
         let anthropicMessages = messages.map { AnthropicMessage(role: $0.sender == .user ? "user" : "assistant", content: $0.text) }
         
-        // Using placeholders for mood and sleep for now.
-        // This will be replaced with real data from a check-in flow later.
         let requestBody = AnthropicRequest(
             model: "claude-3-sonnet-20240229",
-            system: systemPrompt(for: 3, sleep: 6),
+            system: systemPrompt(for: mood, sleep: sleep),
             messages: anthropicMessages,
             maxTokens: 1024
         )

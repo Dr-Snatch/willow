@@ -9,13 +9,24 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var conversation = Conversation()
+    @StateObject private var checkInStore = CheckInStore()
 
     var body: some View {
         NavigationView {
-            if conversation.isCrisis {
-                CrisisView()
+            if checkInStore.hasCheckedInToday {
+                if conversation.isCrisis {
+                    CrisisView()
+                } else {
+                    ChatView(conversation: conversation)
+                }
             } else {
-                ChatView(conversation: conversation)
+                CheckInView(checkInStore: checkInStore)
+            }
+        }
+        .onChange(of: checkInStore.latestCheckIn) { checkIn in
+            // Pass check-in data to the conversation
+            if let checkIn = checkIn {
+                conversation.updateContext(mood: checkIn.mood, sleep: checkIn.sleep)
             }
         }
     }
