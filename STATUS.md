@@ -1,0 +1,63 @@
+# Willow — Project Status
+
+> This file is the coordination point for all contributors — human and AI.
+> **Before starting any work:** check "In progress" and claim your task.
+> **After finishing:** move it to "Done" and update CLAUDE.md if anything architectural changed.
+
+Last updated: 2026-05-02
+
+---
+
+## In progress
+
+_Nothing claimed — add your task here before you start work._
+
+Format: `- [ ] Brief description of task — [who/what is working on it]`
+
+---
+
+## Done
+
+- [x] iOS app scaffold — SwiftUI, MVVM, no Storyboards
+- [x] Onboarding flow — name capture, first-run state
+- [x] Check-in flow — mood scale (1–5) + free-text note
+- [x] CrisisView — hotlines sheet (988, Crisis Text Line, 911), manual trigger button
+- [x] CrisisDetector — synchronous local keyword check before any API call
+- [x] Layer 1 conversation — Haiku 4.5 streaming chat (`AIConversationService.swift`)
+- [x] AppStore async pipeline — real `sendMessage` replacing all mock responses
+- [x] Conversation end detection — `<<END>>` signal, `ConversationPhase` state, end-state UI
+- [x] API key safety — `APIConfig.swift` gitignored, template committed
+- [x] CLAUDE.md §0 — multi-AI coordination rules
+
+---
+
+## Up next (prioritised)
+
+1. **Layer 2 insight pipeline** — `InsightPipelineService.swift`: GPT (OpenAI) extraction pass + Grok (xAI) verification pass, runs on full conversation transcript after `<<END>>`
+2. **Insight display UI** — post-conversation pattern reveal for patient: observational language, confidence shown, nothing diagnostic
+3. **UK crisis hotlines** — CrisisView currently shows US resources (988, 741741); needs Samaritans (116 123) and Shout (85258) as defaults with region detection
+4. **Persistence** — conversations and insights are in-memory only; needs local storage (SwiftData or CoreData)
+5. **Backend proxy** — API keys must move off device before any real users; Python/FastAPI preferred (see CLAUDE.md §7)
+6. **Patient consent flow** — therapist soft-flagging on crisis requires consent obtained at onboarding; not yet built
+7. **Pattern engine** — cross-conversation clustering of insights; depends on persistence being in place
+8. **Therapist dashboard** — wire structured insights to the web app; currently a static HTML prototype
+
+---
+
+## Blocked / needs a decision
+
+- **Therapist verification** — how do we confirm someone is a licensed therapist? Manual review at first? BACP/HCPC API? Unblocks: any patient–therapist linking work.
+- **Patient–therapist pairing** — invite code is the assumed model; confirm before building onboarding for it.
+- **Willow Tree mechanic** — engagement feature; has design risk (see CLAUDE.md §12). Needs user-testing before building.
+- **UK vs US crisis resources** — app currently shows US hotlines. If primary market is UK, Samaritans + Shout should be default and 988 secondary.
+
+---
+
+## How AI agents should use this file
+
+1. Read the whole file before starting.
+2. Add your task to **In progress** with a short description before writing any code.
+3. If you finish a task, move it to **Done**.
+4. If you discover something is blocked or needs a decision, add it to the blocked section.
+5. If your work changes the architecture, file structure, or AI pipeline — update CLAUDE.md §5, §7, §10, §13 in the same commit.
+6. Do not start work on anything already listed in **In progress** — check first, ask if unclear.

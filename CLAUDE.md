@@ -224,6 +224,11 @@ Willow/
 - Pattern engine — cross-conversation clustering
 - Therapist view data feed
 
+**Supporting documents:**
+- `STATUS.md` — what's done, in progress, and next; AI agents claim tasks here before starting
+- `docs/safety.md` — crisis path detail, keyword list, what's still missing, rules for changing safety code
+- `docs/privacy.md` — data handling, sub-processors, GDPR obligations, what must be done before launch
+
 ---
 
 ## 11. Domain Glossary
