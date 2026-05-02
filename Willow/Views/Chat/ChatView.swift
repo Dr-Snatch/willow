@@ -49,7 +49,7 @@ struct MessageBubble: View {
 
 
 struct ChatView: View {
-    @StateObject private var conversation = Conversation()
+    @ObservedObject var conversation: Conversation
     @State private var inputText: String = ""
 
     var body: some View {
@@ -103,9 +103,9 @@ struct ChatView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-
 #Preview {
     NavigationView {
-        ChatView()
+        // We need to pass a conversation object for the preview to work
+        ChatView(conversation: Conversation())
     }
 }

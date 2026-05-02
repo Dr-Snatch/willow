@@ -8,13 +8,18 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var conversation = Conversation()
+
     var body: some View {
         NavigationView {
-            ChatView()
+            if conversation.isCrisis {
+                CrisisView()
+            } else {
+                ChatView(conversation: conversation)
+            }
         }
     }
 }
-
 #Preview {
     ContentView()
 }
