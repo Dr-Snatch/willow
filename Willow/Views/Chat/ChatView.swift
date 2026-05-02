@@ -54,17 +54,30 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(conversation.messages) { message in
-                        MessageBubble(
-                            message: message.text,
-                            isFromUser: message.sender == .user,
-                            register: message.register
-                        )
+            ScrollViewReader { scrollViewProxy in
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach(conversation.messages) { message in
+                            MessageBubble(
+                                message: message.text,
+                                isFromUser: message.sender == .user,
+                                register: message.register
+                            )
+                            .id(message.id)
+                        }
+                        
+                        if conversation.isLoading {
+                            MessageBubble(message: "...", isFromUser: false, register: .warmListening)
+                        }
+                    }
+                    .padding(.top)
+                }
+                .onChange(of: conversation.messages.count) { _ in
+                    // Auto-scroll to the bottom
+                    if let lastMessage = conversation.messages.last {
+                        scrollViewProxy.scrollTo(lastMessage.id, anchor: .bottom)
                     }
                 }
-                .padding(.top)
             }
 
             HStack(spacing: 16) {
