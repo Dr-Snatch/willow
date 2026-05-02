@@ -65,9 +65,10 @@ export const useConversationStore = create<ConversationState>()(
         const sleepLabel = SLEEP_LABELS[entry.sleep] ?? entry.sleep;
         const nameClause = name ? ` for ${name}` : '';
 
+        const stepsClause = entry.steps !== undefined ? `\nSteps today: ${entry.steps.toLocaleString()}.` : '';
         const note = `The user has just completed their daily check-in${nameClause}.
 Mood: ${moodLabel} (${entry.mood}/5).
-Sleep last night: ${sleepLabel} (${entry.sleep}/5).
+Sleep last night: ${sleepLabel} (${entry.sleep}/5).${stepsClause}
 ${entry.notes ? `They wrote: "${entry.notes}"` : 'They did not add any notes.'}
 
 Open the conversation with a brief, warm, personalised response — 2 to 3 sentences only. Acknowledge what they shared. Do not give advice. End with a single gentle invitation for them to share more, if they'd like — no pressure.`;

@@ -18,6 +18,7 @@ export interface CheckInEntry {
   timestamp: number;
   timeOfDay: TimeOfDay;
   dayOfWeek: number; // 0 = Sunday, 6 = Saturday
+  steps?: number;
 }
 
 export function getTimeOfDay(): TimeOfDay {

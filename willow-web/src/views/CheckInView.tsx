@@ -1,9 +1,10 @@
-import { useState, useId } from 'react';
+import { useState, useId, useEffect } from 'react';
 import { useCheckInStore } from '../store/useCheckIn';
 import { useConversationStore } from '../store/useConversation';
 import { useUserStore } from '../store/useUser';
+import { useRemindersStore } from '../store/useReminders';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Check, Smartphone } from 'lucide-react';
 
 const MOODS = [
   { value: 1, label: 'Awful', color: '#DC4444' },
@@ -93,10 +94,11 @@ const WeekHistory = ({ history }: { history: { mood: number; timestamp: number }
 };
 
 const CheckInView = () => {
-  const { mood, sleep, thoughts, setMood, setSleep, setThoughts, submitCheckIn, history } =
+  const { mood, sleep, thoughts, steps, setMood, setSleep, setThoughts, setSteps, submitCheckIn, history } =
     useCheckInStore();
   const { clearMessages, setPendingCheckIn } = useConversationStore();
   const { name } = useUserStore();
+  const { medications, todaySteps, toggleMedicationTaken, setTodaySteps } = useRemindersStore();
   const navigate  = useNavigate();
   const [submitted, setSubmitted] = useState(false);
 
@@ -104,12 +106,20 @@ const CheckInView = () => {
   const sleepGroupId = useId();
   const notesId      = useId();
   const counterId    = useId();
+  const stepsId      = useId();
 
+  // Pre-populate steps from reminders store on first render
+  useEffect(() => {
+    if (steps === null) setSteps(todaySteps);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const today = new Date().toISOString().slice(0, 10);
   const canSubmit    = mood !== null && sleep !== null;
   const selectedMood = MOODS.find((m) => m.value === mood);
 
   const handleSubmit = () => {
     if (!canSubmit) return;
+    if (steps !== null) setTodaySteps(steps);
     const entry = submitCheckIn();
     if (!entry) return;
     clearMessages();
@@ -289,6 +299,76 @@ const CheckInView = () => {
               className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text placeholder:text-text-muted transition-all duration-300 focus:border-border-strong focus:outline-none focus:ring-2 focus:ring-brand/20"
             />
           </div>
+
+          {/* Steps */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-baseline justify-between">
+              <label htmlFor={stepsId} className="text-sm font-medium text-text">
+                Steps today{' '}
+                <span className="font-normal text-text-muted">optional</span>
+              </label>
+              <span className="flex items-center gap-1 text-[10px] text-text-muted">
+                <Smartphone className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
+                syncs from phone
+              </span>
+            </div>
+            <input
+              id={stepsId}
+              type="number"
+              min={0}
+              max={99999}
+              value={steps ?? ''}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setSteps(isNaN(v) ? null : Math.max(0, Math.min(99999, v)));
+              }}
+              placeholder="e.g. 4 200"
+              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text placeholder:text-text-muted transition-all duration-300 focus:border-border-strong focus:outline-none focus:ring-2 focus:ring-brand/20"
+            />
+          </div>
+
+          {/* Medication */}
+          {medications.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm font-medium text-text">Medications today</p>
+              <div className="flex flex-col gap-2" role="group" aria-label="Medication taken today">
+                {medications.map((med) => {
+                  const taken = med.takenDates.includes(today);
+                  return (
+                    <button
+                      key={med.id}
+                      type="button"
+                      onClick={() => toggleMedicationTaken(med.id)}
+                      aria-pressed={taken}
+                      aria-label={`${med.name} ${med.dose} — ${taken ? 'taken' : 'not taken'}`}
+                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-300 ${
+                        taken
+                          ? 'border-brand/30 bg-brand-muted'
+                          : 'border-border bg-surface hover:border-border-strong'
+                      }`}
+                    >
+                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-300 ${
+                        taken ? 'border-brand bg-brand text-white' : 'border-border'
+                      }`}>
+                        {taken && <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-sm font-medium ${taken ? 'text-brand' : 'text-text'}`}>
+                          {med.name}
+                        </span>
+                        <span className="ml-2 text-xs text-text-secondary">{med.dose} · {med.timeLabel}</span>
+                      </div>
+                      {taken && (
+                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-widest text-brand">
+                          Taken
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Submit */}
           <button
