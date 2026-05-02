@@ -380,8 +380,9 @@ nonisolated final class InsightPipelineService {
 
         let body: [String: Any] = [
             "model": APIConfig.synthesisModel,
-            "max_tokens": 12000,
-            "thinking": ["type": "enabled", "budget_tokens": APIConfig.synthesisThinkingBudget],
+            "max_tokens": 16000,
+            "thinking": ["type": "adaptive"],
+            "output_config": ["effort": "high"],
             "system": systemPrompt,
             "messages": [["role": "user", "content": buildUserContent(conversation: conversation)]]
         ]
@@ -408,13 +409,23 @@ nonisolated final class InsightPipelineService {
     // MARK: - Parsing helpers
 
     private func parse(_ text: String) -> [RawInsight] {
-        let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Strip markdown code fences — models often wrap JSON in ```json ... ``` even when told not to
+        if cleaned.hasPrefix("```") {
+            cleaned = cleaned
+                .replacingOccurrences(of: #"^```[a-z]*\n?"#, with: "", options: .regularExpression)
+                .replacingOccurrences(of: #"\n?```$"#, with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
         guard let data = cleaned.data(using: .utf8) else { return [] }
 
         // Accept both {"insights": [...]} and [...]
         if let obj = try? JSONDecoder().decode([String: [RawInsight]].self, from: data),
            let insights = obj["insights"] { return insights }
         if let arr = try? JSONDecoder().decode([RawInsight].self, from: data) { return arr }
+        print("[parse] Failed to decode JSON. First 200 chars: \(String(cleaned.prefix(200)))")
         return []
     }
 
