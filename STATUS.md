@@ -38,8 +38,9 @@ Format: `- [ ] Brief description of task — [who/what is working on it]`
 ## Up next (prioritised)
 
 1. **Layer 2** — TBD (design conversation needed before building)
-2. **Layer 3 insight pipeline** — `InsightPipelineService.swift`: 4 models (Gemini, Grok, Claude, GPT) in parallel → consensus check (4/4) → if no consensus: Round 2 with cross-context → weighted synthesis agent → insight or therapist redirect
-3. **Insight display UI** — post-conversation pattern reveal for patient: observational language, confidence shown, nothing diagnostic
+2. **PersonalContext data model** — `PersonalContext.swift`: recurring emotions, known triggers, behavioural cycles, protective factors, trend direction; patient-owned, consent-gated, fully deletable
+3. **Layer 3 insight pipeline** — `InsightPipelineService.swift`: 4 models with different lenses (Gemini/emotional depth, Grok/triggers, Claude/behaviour, GPT/longitudinal) each receiving transcript + PersonalContext → consensus check (4/4) → Round 2 with cross-context → Opus 4.7 synthesis → insight or therapist redirect
+4. **Insight display UI** — post-conversation pattern reveal for patient: observational language, confidence shown, nothing diagnostic
 3. **Region-aware crisis resources** — CrisisView now defaults to UK resources; region detection / localisation still needed before launch
 4. **Persistence** — conversations and insights are in-memory only; needs local storage (SwiftData or CoreData)
 5. **Backend proxy** — API keys must move off device before any real users; Python/FastAPI preferred (see CLAUDE.md §7)

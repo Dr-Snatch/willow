@@ -126,30 +126,56 @@ Layer 1: Haiku 4.5 streaming conversation
         ↓
 Layer 2: [TBD — to be designed]
         ↓
-Layer 3: 4 models queried in parallel (Round 1 — independent, no shared context)
-  Gemini ──┐
-  Grok   ──┤── same prompt, same transcript
-  Claude ──┤
-  GPT    ──┘
+Layer 3: 4 models queried in parallel
+  Each receives: conversation transcript + PersonalContext (historical patterns)
+  Round 1 — independent, no cross-model context
+  ┌─ Gemini → emotional depth lens
+  ├─ Grok   → triggers & context lens
+  ├─ Claude → behavioural patterns lens
+  └─ GPT    → longitudinal signals lens
         ↓
   Consensus check: do all 4 agree? (4/4 required)
   ├── YES → proceed to patient view ✅
   └── NO  → Round 2: each model receives the other 3's Round 1 output
               ↓
-            Weighted synthesis agent reviews all 8 outputs (4×R1 + 4×R2)
+            Weighted synthesis agent (Opus 4.7, extended thinking)
+            Reviews all 8 outputs (4×R1 + 4×R2)
             ├── Weighted consensus → insight surfaced to patient
             └── No consensus → "This sounds important — speak to your therapist"
         ↓
+Confirmed insights update PersonalContext
+        ↓
 Insights stored as candidates (confidence + provenance + round reached)
         ↓
-[NOT YET BUILT] Patient reviews → confirms → therapist view updates
+Patient reviews → confirms → therapist view updates
 ```
 
 The crisis check is **always synchronous and local** — it runs before the network call, with no latency dependency. Everything else can be async.
 
-**Why 4/4 for Round 1:** Four independent models from four different vendors. If all four agree without seeing each other's work, that is the strongest possible signal. Any disagreement triggers Round 2 where each model gets peer context — like a panel of experts reviewing each other's reasoning before a final decision.
+**Why 4 different lenses:** Identical prompts across 4 models produces correlated outputs. Different lenses (emotional depth, triggers, behaviour, longitudinal) mean each model is genuinely looking at different dimensions. Convergence from 4 angles is a stronger signal than 4 identical analyses agreeing.
 
-**The synthesis agent (Round 2):** Model TBD — needs strong reasoning across 8 inputs. Claude Sonnet is the current candidate; a fifth independent model is the alternative to avoid any single-vendor bias in the final call.
+**Why historical context matters:** Without it, every conversation starts cold. With PersonalContext, a model can identify that anxiety has appeared in 9 of 14 conversations, not just today's. Longitudinal patterns are the most clinically meaningful signal. Models are explicitly instructed: *"treat this as context, not conclusion — this conversation may show genuine change."*
+
+**Why 4/4 for Round 1:** Four independent vendors, different training data, different architectures, different lenses. Unanimous agreement without shared context is the strongest possible automated signal. Any disagreement triggers Round 2.
+
+### PersonalContext — what is tracked
+
+```
+PersonalContext (patient-owned, consent-gated, fully deletable):
+├── recurringEmotions   → emotion + frequency across N conversations
+├── knownTriggers       → context/situation → emotional response mappings
+├── behaviouralCycles   → recurring patterns (e.g. avoidance before difficulty)
+├── protectiveFactors   → what correlates with improved entries
+├── trendDirection      → is a pattern strengthening, weakening, or stable?
+└── conversationCount   → N total conversations, date of last
+```
+
+**Privacy rules for PersonalContext:**
+- Patient can view their full context at any time — no hidden profile
+- Fully deletable on request (right to erasure applies)
+- Explicit consent required at onboarding before any context is built
+- Cannot cross the patient → therapist boundary without patient review and approval
+- Stored as structured summaries only — raw conversation text is never retained in context
 
 **Current implementation status:**
 - ✅ CrisisDetector (local keyword check)
@@ -309,6 +335,9 @@ Worth user-testing with people in active therapy before committing.
 ---
 
 ## 13. Decision Log
+
+**2026-05-02 — Historical PersonalContext added to pipeline**
+Each Layer 3 model receives the conversation transcript plus a structured PersonalContext built from prior confirmed conversations. This enables longitudinal pattern detection — "anxiety in 9 of 14 conversations" is a meaningfully stronger signal than "anxiety today." Context is patient-owned, consent-gated, fully deletable, and stored as structured summaries only (no raw text retained). Models are explicitly told to treat it as context not conclusion to avoid anchoring that masks genuine change.
 
 **2026-05-02 — Full pipeline architecture (supersedes earlier two-layer entry)**
 Layer 1: Haiku 4.5 streaming conversation. Ends with `<<END>>`. Layer 2: TBD. Layer 3: four models (Gemini, Grok, Claude, GPT) queried in parallel with no shared context (Round 1). If all 4 agree → insight passes. If any disagree → Round 2: each model sees the other 3's Round 1 output and re-evaluates. A weighted synthesis agent then reviews all 8 outputs and makes a final call. If still no consensus → user is directed to their therapist rather than receiving a potentially wrong insight.

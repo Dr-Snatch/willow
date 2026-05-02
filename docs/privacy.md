@@ -15,6 +15,19 @@
 | Mood check-ins (score + note) | In-memory (`AppStore.checkIns`) | Medium |
 | Conversation messages | In-memory (`AppStore.messages`) | **High** — mental health content |
 | Insights (not yet built) | Not yet built | **High** — clinical-adjacent |
+| PersonalContext (not yet built) | Not yet built | **Very high** — persistent psychological profile |
+
+### PersonalContext — special handling required
+
+PersonalContext is a longitudinal summary of a user's emotional patterns, triggers, and behavioural cycles built up across multiple conversations. It is the most sensitive data Willow holds.
+
+**Rules:**
+- **Consent before creation.** Must be explicitly consented to at onboarding: *"Willow builds a picture of your patterns over time. You can view, edit, or delete this at any time."*
+- **Patient visibility.** User can see their full PersonalContext in the app at any time — no hidden profile building.
+- **Deletable on demand.** Deletion must be immediate and complete — this is the most likely subject access request Willow will receive.
+- **Summaries only.** Raw conversation text is never stored in PersonalContext. Only structured extracted patterns.
+- **Therapist boundary.** PersonalContext cannot cross to the therapist view without the patient explicitly reviewing and approving the specific content to share.
+- **Passed to AI models.** PersonalContext is included in Layer 3 model prompts. Each model prompt includes: *"treat this as context, not conclusion — the current conversation may show genuine change."* This prevents models anchoring on historical context and missing improvement.
 
 **Nothing is persisted to disk yet.** All data is lost when the app is closed. This is not a feature — it is a gap that must be closed before the app is useful.
 
