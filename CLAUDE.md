@@ -124,22 +124,40 @@ CrisisDetector.isCrisis() — synchronous, local ──→ CrisisView if trigger
 Layer 1: Haiku 4.5 streaming conversation
   ↕ (6–10 exchanges, AI ends with <<END>>)
         ↓
-Layer 2: Full transcript → GPT (extraction pass)
-                        → Grok (verification pass)
+Layer 2: [TBD — to be designed]
         ↓
-Insights stored as candidates (confidence + provenance)
+Layer 3: 4 models queried in parallel (Round 1 — independent, no shared context)
+  Gemini ──┐
+  Grok   ──┤── same prompt, same transcript
+  Claude ──┤
+  GPT    ──┘
+        ↓
+  Consensus check: do all 4 agree? (4/4 required)
+  ├── YES → proceed to patient view ✅
+  └── NO  → Round 2: each model receives the other 3's Round 1 output
+              ↓
+            Weighted synthesis agent reviews all 8 outputs (4×R1 + 4×R2)
+            ├── Weighted consensus → insight surfaced to patient
+            └── No consensus → "This sounds important — speak to your therapist"
+        ↓
+Insights stored as candidates (confidence + provenance + round reached)
         ↓
 [NOT YET BUILT] Patient reviews → confirms → therapist view updates
 ```
 
 The crisis check is **always synchronous and local** — it runs before the network call, with no latency dependency. Everything else can be async.
 
+**Why 4/4 for Round 1:** Four independent models from four different vendors. If all four agree without seeing each other's work, that is the strongest possible signal. Any disagreement triggers Round 2 where each model gets peer context — like a panel of experts reviewing each other's reasoning before a final decision.
+
+**The synthesis agent (Round 2):** Model TBD — needs strong reasoning across 8 inputs. Claude Sonnet is the current candidate; a fifth independent model is the alternative to avoid any single-vendor bias in the final call.
+
 **Current implementation status:**
 - ✅ CrisisDetector (local keyword check)
 - ✅ CrisisView defaults to UK resources (Samaritans 116 123, Shout 85258, 999)
 - ✅ Layer 1 conversation (Haiku 4.5, streaming)
 - ✅ Native SwiftUI patient mockup: Home, check-in, chat, reminders, settings, history, booking, therapist link, Willow companion, font/display controls, wind-down mode
-- ⬜ Layer 2 pipeline (GPT + Grok) — next step
+- ⬜ Layer 2 — TBD
+- ⬜ Layer 3 — 4-model parallel query + two-round consensus pipeline
 - ⬜ Insight storage and patient review UI
 - ⬜ Therapist view data feed
 
@@ -167,7 +185,10 @@ A living tree that reflects journaling consistency: vibrant when the user journa
 | Backend | **TBD** — Python/FastAPI vs Node | Python preferred for AI proximity (see §12) |
 | Database | PostgreSQL | Sensitive fields encrypted at rest |
 | AI — conversation layer | Anthropic Haiku 4.5 (`claude-haiku-4-5-20251001`) | Streaming, real-time, in-app |
-| AI — insight pipeline | OpenAI GPT (extraction) + xAI Grok (verification) | Post-conversation, cross-vendor by design |
+| AI — Layer 2 | TBD | To be designed |
+| AI — Layer 3 Round 1 | Gemini + Grok + Claude + GPT (parallel) | 4 independent vendors, no shared context |
+| AI — Layer 3 Round 2 | Same 4 models, cross-context | Each sees the other 3's Round 1 output |
+| AI — synthesis agent | TBD (Claude Sonnet candidate) | Weighted decision across all 8 outputs |
 | Voice | On-device transcription where possible | Cloud transcription = extra sub-processor |
 
 > **API keys (development):** Keys live in `ios/Willow/Config/APIConfig.swift` (gitignored). **Must move to a backend service before production** — never ship client apps with embedded vendor keys.
@@ -289,9 +310,12 @@ Worth user-testing with people in active therapy before committing.
 
 ## 13. Decision Log
 
-**2026-05-02 — Two-layer AI architecture**
-Layer 1 (conversation): Haiku 4.5 handles real-time streaming chat. Role is reflective journaling companion — asks open questions, goes deep, never advises. Ends conversation itself after 6–10 exchanges with `<<END>>` signal in response. Layer 2 (insight pipeline): GPT (OpenAI) extracts structured insights from the full transcript; Grok (xAI) independently verifies them. Two different vendors by design — same vendor twice is not genuine independence per §3. Pipeline runs post-conversation, not during.
-Alternatives considered: single Claude model for everything (rejected — violates Verification Principle), Claude for pipeline (rejected — cross-vendor independence stronger).
+**2026-05-02 — Full pipeline architecture (supersedes earlier two-layer entry)**
+Layer 1: Haiku 4.5 streaming conversation. Ends with `<<END>>`. Layer 2: TBD. Layer 3: four models (Gemini, Grok, Claude, GPT) queried in parallel with no shared context (Round 1). If all 4 agree → insight passes. If any disagree → Round 2: each model sees the other 3's Round 1 output and re-evaluates. A weighted synthesis agent then reviews all 8 outputs and makes a final call. If still no consensus → user is directed to their therapist rather than receiving a potentially wrong insight.
+
+Rationale: 4/4 unanimous agreement from four independent vendors with no shared context is the strongest possible automated signal. Round 2 with cross-context mirrors a clinical panel review — experts who can revise their position after seeing peer reasoning. The fallback to a human (therapist) when the AI panel can't agree is the right safety posture for a mental-health product.
+
+Synthesis agent model: TBD — Claude Sonnet is the current candidate; a fifth independent model is the alternative to avoid any single-vendor bias in the final synthesis step.
 
 **2026-05-02 — Crisis detection is synchronous and local**
 `CrisisDetector.isCrisis()` runs as a keyword check on the device before any API call. If triggered, `CrisisView` is shown immediately. The AI never sees a message that would have triggered crisis — the local check intercepts it first. This means no latency on the safety path and no dependency on network availability.
