@@ -41,6 +41,21 @@ struct ChatView: View {
                     .foregroundColor(store.theme.muted)
             }
             Spacer()
+            #if DEBUG
+            Button {
+                Task { await store.runPipelineWithMockData() }
+            } label: {
+                Text("Test")
+                    .willowFont(store, size: 12, weight: .semibold)
+                    .foregroundColor(store.theme.brand)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(store.theme.brand.opacity(0.12))
+                    .cornerRadius(12)
+            }
+            .disabled(store.conversationPhase != .active)
+            #endif
+
             Button {
                 store.showCrisisSheet = true
             } label: {

@@ -133,6 +133,46 @@ class AppStore: ObservableObject {
         conversationPhase = .active
     }
 
+    // MARK: - Pipeline test (dev only)
+    // Loads a crafted conversation with known hidden traits and fires the pipeline directly.
+    // Expected signals: perfectionism, people-pleasing, parental expectations,
+    // sleep-linked rumination, social withdrawal, shame around vulnerability.
+    func runPipelineWithMockData() async {
+        guard conversationPhase == .active else { return }
+
+        let fixture: [(Bool, String)] = [
+            (true,  "I've been feeling really off lately but I don't really know why."),
+            (false, "What does 'off' feel like for you right now?"),
+            (true,  "Like I can't settle. I keep starting things and not finishing them. Work is fine, I just — I agreed to take on another project even though I'm already behind on two others."),
+            (false, "What made it hard to say no to the new project?"),
+            (true,  "I just didn't want to let people down. It's not a big deal, I can handle it."),
+            (false, "What happens when you imagine saying no?"),
+            (true,  "I get this tight feeling in my chest. Like they'd think I'm not capable. My mum always said you should never turn down an opportunity — so I suppose I just don't."),
+            (false, "That sounds like it's been with you for a long time."),
+            (true,  "Yeah maybe. I've been sleeping badly again too. My mind won't stop going over everything. Did I do that report right, did I say the wrong thing in that meeting, will they notice I'm behind."),
+            (false, "What does 'doing it right' look like to you?"),
+            (true,  "Not making mistakes. Not having people notice I'm struggling. I cancelled on my friends again this weekend — I just didn't have the energy and I knew I'd be terrible company."),
+            (false, "How often does that happen — pulling back from people when things feel heavy?"),
+            (true,  "More than I'd like to admit. It's easier to just be alone when I feel like this. I don't want to be a burden or have them see that I'm not coping."),
+            (false, "What would it mean to let someone see that?"),
+            (true,  "That they'd see I don't have it together. Which is embarrassing. I'm supposed to be fine. I've always been the one who's fine."),
+        ]
+
+        messages = fixture.map { ChatMessage(isUser: $0.0, text: $0.1) }
+        conversationPhase = .processing
+
+        let snapshot = messages
+        Task {
+            let result = await InsightPipelineService.shared.run(conversation: snapshot, context: nil)
+            switch result {
+            case .consensus(let insights):
+                self.conversationPhase = .ended(insights: insights)
+            case .noConsensus, .failed:
+                self.conversationPhase = .noConsensus
+            }
+        }
+    }
+
     func toggleMedicationTaken(_ medication: MedicationReminder) {
         guard let index = medicationReminders.firstIndex(where: { $0.id == medication.id }) else { return }
         medicationReminders[index].isTakenToday.toggle()

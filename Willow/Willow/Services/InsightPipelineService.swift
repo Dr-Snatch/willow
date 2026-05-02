@@ -67,6 +67,12 @@ private enum AnalysisLens {
     }
 }
 
+enum PipelineResult {
+    case consensus([Insight])
+    case noConsensus
+    case failed(Error)
+}
+
 enum PipelineError: LocalizedError {
     case insufficientResponses, invalidURL, synthesisFailure
 
