@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Wind, ScanEye, Droplets, Brain, Sunset, Footprints, LucideIcon } from 'lucide-react';
 
 interface Strategy {
   id: string;
-  emoji: string;
+  icon: LucideIcon;
   title: string;
   summary: string;
   steps: string[];
@@ -13,7 +13,7 @@ interface Strategy {
 
 const STRATEGIES: Strategy[] = [
   {
-    id: '1', emoji: '🫁', title: 'Box Breathing', tag: 'Breathing', accent: '#3D8C6E',
+    id: '1', icon: Wind, title: 'Box Breathing', tag: 'Breathing', accent: '#2E7D5A',
     summary: 'Slow the nervous system in under a minute.',
     steps: [
       'Find a comfortable position and close your eyes.',
@@ -25,7 +25,7 @@ const STRATEGIES: Strategy[] = [
     ],
   },
   {
-    id: '2', emoji: '🌿', title: '5-4-3-2-1 Grounding', tag: 'Grounding', accent: '#52A882',
+    id: '2', icon: ScanEye, title: '5-4-3-2-1 Grounding', tag: 'Grounding', accent: '#3D8C6E',
     summary: 'Return to the present moment through your senses.',
     steps: [
       'Name 5 things you can see.',
@@ -36,17 +36,7 @@ const STRATEGIES: Strategy[] = [
     ],
   },
   {
-    id: '3', emoji: '💧', title: 'Cold Water Reset', tag: 'Physical', accent: '#4A9EC0',
-    summary: "Activate your body's calming reflex.",
-    steps: [
-      'Fill a bowl with cold water, or run the cold tap.',
-      'Submerge your face, or hold your wrists under cold water for 30 seconds.',
-      'This activates the dive reflex — your heart rate slows.',
-      'Take a slow breath and notice how you feel.',
-    ],
-  },
-  {
-    id: '4', emoji: '🧠', title: 'Thought Defusion', tag: 'Thought work', accent: '#8B72C4',
+    id: '3', icon: Brain, title: 'Thought Record', tag: 'Thought work', accent: '#6B58B8',
     summary: 'Create a little distance from difficult thoughts.',
     steps: [
       'When a difficult thought arrives, notice it without trying to push it away.',
@@ -56,7 +46,17 @@ const STRATEGIES: Strategy[] = [
     ],
   },
   {
-    id: '5', emoji: '🌄', title: 'Safe Place Visualisation', tag: 'Grounding', accent: '#52A882',
+    id: '4', icon: Droplets, title: 'Cold Water Reset', tag: 'Physical', accent: '#2E7DA0',
+    summary: "Activate your body's calming reflex.",
+    steps: [
+      'Fill a bowl with cold water, or run the cold tap.',
+      'Submerge your face, or hold your wrists under cold water for 30 seconds.',
+      'This activates the dive reflex — your heart rate slows.',
+      'Take a slow breath and notice how you feel.',
+    ],
+  },
+  {
+    id: '5', icon: Sunset, title: 'Safe Place Visualisation', tag: 'Grounding', accent: '#3D8C6E',
     summary: 'Build an inner refuge you can return to.',
     steps: [
       'Close your eyes and take a few slow breaths.',
@@ -67,7 +67,7 @@ const STRATEGIES: Strategy[] = [
     ],
   },
   {
-    id: '6', emoji: '🚶', title: 'Movement Break', tag: 'Physical', accent: '#4A9EC0',
+    id: '6', icon: Footprints, title: 'Movement Break', tag: 'Physical', accent: '#2E7DA0',
     summary: 'Shift your state by moving your body.',
     steps: [
       'Stand up and shake out your hands and arms.',
@@ -80,6 +80,7 @@ const STRATEGIES: Strategy[] = [
 
 const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
   const [open, setOpen] = useState(false);
+  const Icon = strategy.icon;
 
   return (
     <div className={`overflow-hidden rounded-2xl border transition-all duration-300 ease-expo ${
@@ -89,18 +90,29 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-4 px-5 py-4 text-left"
       >
-        <span className="text-2xl leading-none" style={{ opacity: open ? 1 : 0.7 }}>
-          {strategy.emoji}
-        </span>
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors duration-300"
+          style={{
+            borderColor: `${strategy.accent}25`,
+            backgroundColor: `${strategy.accent}10`,
+          }}
+        >
+          <Icon
+            className="h-4 w-4"
+            strokeWidth={1.75}
+            style={{ color: strategy.accent, opacity: open ? 1 : 0.75 }}
+          />
+        </div>
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
             <p className="text-sm font-semibold tracking-tight text-text">{strategy.title}</p>
             <span
               className="rounded-full border px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest"
               style={{
-                borderColor: `${strategy.accent}30`,
+                borderColor: `${strategy.accent}28`,
                 color: strategy.accent,
-                backgroundColor: `${strategy.accent}10`,
+                backgroundColor: `${strategy.accent}08`,
               }}
             >
               {strategy.tag}
@@ -108,6 +120,7 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
           </div>
           <p className="mt-0.5 text-xs text-text-secondary leading-relaxed">{strategy.summary}</p>
         </div>
+
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-text-muted transition-transform duration-300 ease-expo ${open ? 'rotate-180' : ''}`}
           strokeWidth={2}
@@ -115,13 +128,13 @@ const StrategyCard = ({ strategy }: { strategy: Strategy }) => {
       </button>
 
       {open && (
-        <div className="border-t border-border/50 px-5 py-5 slide-down">
+        <div className="border-t border-border/60 px-5 py-5 slide-down">
           <ol className="flex flex-col gap-4">
             {strategy.steps.map((step, i) => (
               <li key={i} className="flex gap-4 items-start">
                 <span
                   className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                  style={{ backgroundColor: `${strategy.accent}18`, color: strategy.accent }}
+                  style={{ backgroundColor: `${strategy.accent}15`, color: strategy.accent }}
                 >
                   {i + 1}
                 </span>
@@ -150,7 +163,7 @@ const ToolkitView = () => (
           Your toolkit.
         </h1>
         <p className="mt-2 text-sm text-text-secondary">
-          Use whatever helps.
+          Evidence-based strategies for difficult moments.
         </p>
       </div>
 

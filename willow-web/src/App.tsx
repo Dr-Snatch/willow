@@ -8,6 +8,7 @@ import CheckInView from './views/CheckInView';
 import CrisisView from './views/CrisisView';
 import OnboardingView from './views/OnboardingView';
 import TrendsView from './views/TrendsView';
+import ToolkitView from './views/ToolkitView';
 import ProfileView from './views/ProfileView';
 import Nav from './components/Nav';
 
@@ -49,6 +50,7 @@ function AppShell() {
           <Route element={<RequireCheckIn />}>
             <Route path="/chat" element={<ChatView />} />
             <Route path="/trends" element={<TrendsView />} />
+            <Route path="/toolkit" element={<ToolkitView />} />
             <Route path="/profile" element={<ProfileView />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
