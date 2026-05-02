@@ -10,6 +10,7 @@ import OnboardingView from './views/OnboardingView';
 import TrendsView from './views/TrendsView';
 import ToolkitView from './views/ToolkitView';
 import ProfileView from './views/ProfileView';
+import TherapistSettingsView from './views/TherapistSettingsView';
 import Nav from './components/Nav';
 
 const RequireCheckIn = () => {
@@ -52,6 +53,7 @@ function AppShell() {
             <Route path="/trends" element={<TrendsView />} />
             <Route path="/toolkit" element={<ToolkitView />} />
             <Route path="/profile" element={<ProfileView />} />
+            <Route path="/therapist" element={<TherapistSettingsView />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

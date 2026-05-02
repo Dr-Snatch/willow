@@ -1,12 +1,13 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { MessageCircle, BarChart2, BookOpen, User } from 'lucide-react';
+import { MessageCircle, BarChart2, BookOpen, User, Stethoscope } from 'lucide-react';
 import WillowLogo from './WillowLogo';
 
 const navItems = [
-  { to: '/chat',    icon: MessageCircle, label: 'Chat' },
-  { to: '/trends',  icon: BarChart2,     label: 'Trends' },
-  { to: '/toolkit', icon: BookOpen,      label: 'Toolkit' },
-  { to: '/profile', icon: User,          label: 'Profile' },
+  { to: '/chat',      icon: MessageCircle, label: 'Chat' },
+  { to: '/trends',    icon: BarChart2,     label: 'Trends' },
+  { to: '/toolkit',   icon: BookOpen,      label: 'Toolkit' },
+  { to: '/profile',   icon: User,          label: 'Profile' },
+  { to: '/therapist', icon: Stethoscope,   label: 'Therapist settings' },
 ];
 
 const Nav = () => {
