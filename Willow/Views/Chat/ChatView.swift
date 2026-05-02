@@ -11,6 +11,7 @@ import SwiftUI
 struct MessageBubble: View {
     let message: String
     let isFromUser: Bool
+    let register: Register
 
     var body: some View {
         HStack {
@@ -19,7 +20,7 @@ struct MessageBubble: View {
             }
             Text(message)
                 .padding(12)
-                .background(isFromUser ? Color.blue.opacity(0.9) : Color.gray.opacity(0.3))
+                .background(bubbleColor)
                 .foregroundColor(isFromUser ? .white : .primary)
                 .cornerRadius(16)
             if !isFromUser {
@@ -29,35 +30,43 @@ struct MessageBubble: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
     }
+
+    private var bubbleColor: Color {
+        if isFromUser {
+            return Color.blue.opacity(0.9)
+        }
+        
+        switch register {
+        case .warmListening:
+            return Color.gray.opacity(0.3)
+        case .informational:
+            return Color.blue.opacity(0.2)
+        case .safety:
+            return Color.orange.opacity(0.4)
+        }
+    }
 }
 
 
 struct ChatView: View {
-    // For the message input
+    @StateObject private var conversation = Conversation()
     @State private var inputText: String = ""
-
-    // Dummy messages for layout
-    let messages = [
-        ("That sounds exhausting", false),
-        ("It really is. I can't seem to catch a break.", true),
-        ("I want to sit with what you just said for a moment.", false),
-        ("I appreciate that.", true)
-    ]
 
     var body: some View {
         VStack(spacing: 0) {
-            // Scrollable conversation view
             ScrollView {
                 VStack(spacing: 8) {
-                    // This is where messages will go
-                    ForEach(messages, id: \.0) { msg, isUser in
-                        MessageBubble(message: msg, isFromUser: isUser)
+                    ForEach(conversation.messages) { message in
+                        MessageBubble(
+                            message: message.text,
+                            isFromUser: message.sender == .user,
+                            register: message.register
+                        )
                     }
                 }
                 .padding(.top)
             }
 
-            // Message Input
             HStack(spacing: 16) {
                 TextField("Start typing...", text: $inputText)
                     .padding(12)
@@ -65,17 +74,17 @@ struct ChatView: View {
                     .cornerRadius(16)
                 
                 Button(action: {
-                    // Send action
-                    print("Send message: \(inputText)")
+                    conversation.sendMessage(inputText)
                     inputText = ""
                 }) {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.largeTitle)
-                        .foregroundColor(.blue)
+                        .foregroundColor(inputText.isEmpty ? .gray.opacity(0.5) : .blue)
                 }
+                .disabled(inputText.isEmpty)
             }
             .padding()
-            .background(.bar) // Use a background that adapts to light/dark mode
+            .background(.bar)
         }
         .navigationTitle("MindBridge")
         .navigationBarTitleDisplayMode(.inline)
